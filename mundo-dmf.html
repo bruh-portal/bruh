@@ -1,0 +1,93 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>¿Dónde estamos? · DMF</title><style>*{box-sizing:border-box}body{font-family:system-ui,sans-serif;color:#f7fbff;background:linear-gradient(140deg,#0d1934,#194c57);margin:0;text-align:center}main{max-width:900px;margin:auto;padding:14px}h1{font-size:clamp(23px,5vw,34px);margin:6px}p{margin:8px}.photo{width:100%;height:clamp(230px,50vh,430px);object-fit:cover;border-radius:16px;border:2px solid #80b4c5;display:block;background:#1e3d52}.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:12px auto}button{background:#237d91;color:white;border:0;border-radius:11px;padding:13px;font-size:16px;font-weight:700;cursor:pointer}button:hover{background:#2b9fb1}button:disabled{opacity:.65}.right{background:#228857!important}.wrong{background:#b64648!important}#next{background:#f5bd50;color:#182d37}#status{min-height:28px;font-weight:bold}small{display:block;color:#c5d8e0;line-height:1.5}a{color:#a4dff4}</style></head><body><main><h1>🌍 ¿Dónde estamos?</h1><p>Adivina el país de cada foto. Cinco rondas para viajar por el mundo.</p><p id="points">Ronda 1 / 5 · Puntos: 0</p><img id="photo" class="photo" alt="Lugar misterioso" draggable="false"><div id="options" class="choices"></div><p id="status" aria-live="polite"></p><button id="next" hidden>Siguiente lugar</button><small id="credit"></small><small>Juego de fotos, inspirado en los juegos de adivinar lugares. Sin Street View.</small></main><script>
+const places=[
+  {
+    "image": "dmf-lugar-1.jpg",
+    "pais": "Francia",
+    "lugar": "París",
+    "autor": "Benh LIEU SONG",
+    "licencia": "Public domain",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Tour_Eiffel_Wikimedia_Commons.jpg",
+    "licencia_url": ""
+  },
+  {
+    "image": "dmf-lugar-2.jpg",
+    "pais": "Estados Unidos",
+    "lugar": "Nueva York",
+    "autor": "William Warby",
+    "licencia": "CC BY 2.0",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Statue_of_Liberty,_NY.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by/2.0"
+  },
+  {
+    "image": "dmf-lugar-3.jpg",
+    "pais": "Italia",
+    "lugar": "Roma",
+    "autor": "Diliff",
+    "licencia": "CC BY-SA 2.5",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Colosseum_in_Rome,_Italy_-_April_2007.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/2.5"
+  },
+  {
+    "image": "dmf-lugar-4.jpg",
+    "pais": "Australia",
+    "lugar": "Sídney",
+    "autor": "Diliff",
+    "licencia": "CC BY-SA 3.0",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Sydney_Opera_House_-_Dec_2008.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  {
+    "image": "dmf-lugar-5.jpg",
+    "pais": "India",
+    "lugar": "Agra",
+    "autor": "Yann; edited by King of Hearts",
+    "licencia": "CC BY-SA 4.0",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Taj_Mahal,_Agra,_India_edit2.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  {
+    "image": "dmf-lugar-6.jpg",
+    "pais": "Brasil",
+    "lugar": "Río de Janeiro",
+    "autor": "Arne Müseler",
+    "licencia": "CC BY-SA 3.0 de",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Christ_the_Redeemer_-_Cristo_Redentor.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en"
+  },
+  {
+    "image": "dmf-lugar-7.jpg",
+    "pais": "Jordania",
+    "lugar": "Petra",
+    "autor": "Diego Delso",
+    "licencia": "CC BY-SA 3.0",
+    "fuente": "https://commons.wikimedia.org/wiki/File:The_Treasury,_Petra,_Jordan1.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  {
+    "image": "dmf-lugar-8.jpg",
+    "pais": "Japón",
+    "lugar": "Monte Fuji",
+    "autor": "Romain Guy from San Francisco, USA",
+    "licencia": "CC0",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Mount_Fuji_at_sunset,_March_2025.jpg",
+    "licencia_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+  },
+  {
+    "image": "dmf-lugar-9.jpg",
+    "pais": "Egipto",
+    "lugar": "Guiza",
+    "autor": "Ricardo Liberato",
+    "licencia": "CC BY-SA 2.0",
+    "fuente": "https://commons.wikimedia.org/wiki/File:All_Gizah_Pyramids.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  {
+    "image": "dmf-lugar-10.jpg",
+    "pais": "Reino Unido",
+    "lugar": "Londres",
+    "autor": "Colin",
+    "licencia": "CC BY-SA 4.0",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Big_Ben_at_sunset_-_2014-10-27_17-30.jpg",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/4.0"
+  }
+];let round=0,points=0,current,order=[],answered=false;const el=id=>document.getElementById(id);function shuffle(a){return a.map(v=>({v,r:Math.random()})).sort((a,b)=>a.r-b.r).map(v=>v.v)}function start(){round=0;points=0;order=shuffle(places).slice(0,5);nextRound()}function nextRound(){answered=false;current=order[round];el('points').textContent=`Ronda ${round+1} / 5 · Puntos: ${points}`;el('photo').src=current.image;el('photo').alt='Foto de un lugar para adivinar';el('status').textContent='¿En qué país está?';el('next').hidden=true;let choices=shuffle([current.pais,...shuffle(places.filter(p=>p.pais!==current.pais)).slice(0,3).map(p=>p.pais)]);el('options').innerHTML='';for(const country of choices){let b=document.createElement('button');b.textContent=country;b.onclick=()=>{if(answered)return;answered=true;let ok=country===current.pais;if(ok)points+=100;b.classList.add(ok?'right':'wrong');for(let t of el('options').children){if(t.textContent===current.pais)t.classList.add('right');t.disabled=true}el('points').textContent=`Ronda ${round+1} / 5 · Puntos: ${points}`;el('status').textContent=(ok?'¡Correcto! ':'Era '+current.pais+'. ')+'📍 '+current.lugar;el('credit').innerHTML='Foto: '+escapeHtml(current.autor)+' · '+escapeHtml(current.licencia)+' · <a target="_blank" rel="noopener" href="'+current.fuente+'">Fuente y licencia</a>';el('next').textContent=round===4?'Jugar otra vez':'Siguiente lugar';el('next').hidden=false};el('options').append(b)}el('credit').textContent='Créditos de la foto disponibles al responder.'}function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}el('next').onclick=()=>{round++;if(round>=5){el('status').textContent='¡Viaje terminado! Has conseguido '+points+' puntos.';el('next').textContent='Empezar de nuevo';el('next').onclick=()=>location.reload();el('options').innerHTML='' }else nextRound()};start();</script></body></html>
