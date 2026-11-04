@@ -231,13 +231,13 @@ async function verifyPassword(password) {
   const expected = fromBase64(PASSWORD_HASH);
   return actual.length === expected.length && actual.every((byte, index) => byte === expected[index]);
 }
-if (sessionStorage.getItem('dmfPageUnlockedV2') === '1') unlockPage();
+
 passwordForm.addEventListener('submit', async event => {
   event.preventDefault();
   passwordError.textContent = 'Comprobando…';
   try {
     if (pageUser.value === 'qwerty1234' && await verifyPassword(passwordInput.value)) {
-      sessionStorage.setItem('dmfPageUnlockedV2', '1');
+
       unlockPage();
     } else {
       passwordError.textContent = 'Usuario o contraseña incorrectos.';
