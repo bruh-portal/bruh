@@ -193,7 +193,7 @@ body.dmf-desktop.dmf-home #dmfHome{padding:0 0 12px!important;min-height:0;point
 .dmf-shortcut:hover{transform:none}.dmf-shortcut.dragging{cursor:grabbing;z-index:10;box-shadow:0 8px 24px #000b}
 .dmf-shortcut-icon{font-size:34px}.dmf-shortcut-label{font-size:13px}
 .dmf-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:600px){body.dmf-desktop.dmf-home .fixed-header h1{font-size:clamp(66px,19vw,100px)!important}.dmf-shortcut-icon{font-size:30px}}
+@media(max-width:600px){body.dmf-desktop.dmf-home .fixed-header h1{font-size:clamp(42px,15vw,76px)!important}.dmf-shortcut-icon{font-size:30px}}
 
 #tvShell:fullscreen{width:100%;height:100vh;height:100dvh;max-width:none;margin:0;padding:12px;border:0;border-radius:0;background:#112329;display:flex;flex-direction:column;overflow:hidden}#tvShell:fullscreen #tvFrame{flex:1;min-height:0!important;height:auto!important}#tvShell:fullscreen h2,#tvShell:fullscreen p{flex:none}
 
@@ -531,9 +531,8 @@ passwordForm.addEventListener('submit', async event => {
  const names={search:'Buscador',playlists:'Playlist',radio:'Radio',ai:'IA',games:'Juegos',tv:'TV',chat:'Chat',tools:'Herramientas'};
  const positionKey='dmfDesktopPositionsV1', W=96,H=96, gap=8;
  let positions={}, displayed={}, drag=null, suppressClick=false;
- // Exchange the two old saved positions once; all other saved coordinates stay intact.
+ // Existing saved positions are never migrated or cleared automatically.
  try{const saved=JSON.parse(localStorage.getItem(positionKey)||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved)){
-  if(!saved._iaGamesSwappedV1){const ai=saved.ai,games=saved.games;if(games===undefined)delete saved.ai;else saved.ai=games;if(ai===undefined)delete saved.games;else saved.games=ai;saved._iaGamesSwappedV1=true;try{localStorage.setItem(positionKey,JSON.stringify(saved))}catch{}}
   for(const name of Object.keys(names)){const p=saved[name];if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y))positions[name]={x:Math.max(0,Math.min(1,p.x)),y:Math.max(0,Math.min(1,p.y))}}
  }}catch{}
  try{localStorage.setItem('dmfLayoutV1','desktop')}catch{}
@@ -550,9 +549,11 @@ passwordForm.addEventListener('submit', async event => {
  }
  function place(){if(home.hidden||!grid.clientWidth)return;const l=limits(),buttons=[...grid.querySelectorAll('.dmf-shortcut')],used=[];displayed={};
   const ordered=buttons.map((b,i)=>({b,i})).sort((a,b)=>Number(!!positions[b.b.dataset.section])-Number(!!positions[a.b.dataset.section]));
-  const aiIndex=buttons.findIndex(b=>b.dataset.section==='ai'),gamesIndex=buttons.findIndex(b=>b.dataset.section==='games');
-  ordered.forEach(({b,i})=>{const saved=positions[b.dataset.section],slot=aiIndex>=0&&gamesIndex>=0?(i===aiIndex?gamesIndex:i===gamesIndex?aiIndex:i):i,row=Math.floor(slot/2),side=slot%2,rows=Math.ceil(buttons.length/2),step=rows>1?Math.min(H+gap,l.y/(rows-1)):0;
-   const desired=saved?{x:saved.x*l.x,y:saved.y*l.y}:{x:side?l.x:0,y:row*step};const p=findSpace(desired,used,l);used.push(p);displayed[b.dataset.section]=p;b.style.left=p.x+'px';b.style.top=p.y+'px';});
+  // Fixed default layout: left Buscador, Radio, IA, Chat; right Playlist, Juegos, TV, Herramientas.
+  const slots={search:[0,0],radio:[0,1],ai:[0,2],chat:[0,3],playlists:[1,0],games:[1,1],tv:[1,2],tools:[1,3]};
+  const inset=Math.min(36,grid.clientWidth*.04),step=Math.min(H+gap,l.y/3),top=Math.max(0,(l.y-step*3)/2);
+  ordered.forEach(({b})=>{const saved=positions[b.dataset.section],slot=slots[b.dataset.section]||[0,0];
+   const desired=saved?{x:saved.x*l.x,y:saved.y*l.y}:{x:slot[0]?l.x-inset:inset,y:top+slot[1]*step};const p=findSpace(desired,used,l);used.push(p);displayed[b.dataset.section]=p;b.style.left=p.x+'px';b.style.top=p.y+'px';});
  }
  function storeAt(name,p){const l=limits(),used=Object.entries(displayed).filter(([n])=>n!==name).map(([,v])=>v),q=findSpace(p,used,l);positions[name]={x:l.x?q.x/l.x:0,y:l.y?q.y/l.y:0};save();place()}
  function leaveHome(){if(!document.body.classList.contains('dmf-home'))return;document.body.classList.remove('dmf-home');home.hidden=true}
@@ -605,7 +606,7 @@ passwordForm.addEventListener('submit', async event => {
    const seed=Math.abs(Math.sin(gx*127.1+gy*311.7)*43758.5453)%1;
    const power=Math.min(.78,(.17+.61*(1-distance/(radius+1)))*(.56+seed*.44));
    const key=gx+','+gy;
-   cells.delete(key);cells.set(key,{x:gx,y:gy,t:now,power,bright:seed,hue:(hue+gx*2+gy*2+3600)%360});
+   cells.delete(key);cells.set(key,{x:gx,y:gy,t:now,power,bright:seed,hue:(hue+gx*12+gy*6+3600)%360});
   }
   while(cells.size>maxCells)cells.delete(cells.keys().next().value);
  }
