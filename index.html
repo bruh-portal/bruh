@@ -583,28 +583,33 @@ passwordForm.addEventListener('submit', async event => {
  const canvas=document.createElement('canvas');canvas.id='dmfPixelBackground';canvas.setAttribute('aria-hidden','true');document.body.prepend(canvas);
  const ctx=canvas.getContext('2d');if(!ctx)return;
  const motion=matchMedia('(prefers-reduced-motion: reduce)');
- // Un rastro continuo y suave en lugar de cubitos; se desvanece por tramos.
- const lifetime=550, thickness=12;
- let active=false,width=0,height=0,hue=0,raf=0,last=null;
- const segments=[];
- function clear(){segments.length=0;last=null;if(raf)cancelAnimationFrame(raf);raf=0;ctx.clearRect(0,0,width,height)}
+ const cell=20, radius=3, lifetime=650;
+ let active=false,width=0,height=0,hue=0,raf=0;
+ const pixels=new Map();
+ function clear(){pixels.clear();if(raf)cancelAnimationFrame(raf);raf=0;ctx.clearRect(0,0,width,height)}
  function size(){width=innerWidth;height=innerHeight;const dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);clear()}
  function draw(now){
-  raf=0;ctx.clearRect(0,0,width,height);while(segments.length&&now-segments[0].time>=lifetime)segments.shift();
-  ctx.lineCap='round';ctx.lineJoin='round';
-  for(const p of segments){const fade=Math.max(0,1-(now-p.time)/lifetime);ctx.globalAlpha=fade*.8;ctx.lineWidth=thickness;ctx.strokeStyle=`hsl(${p.hue} 100% 60%)`;ctx.beginPath();ctx.moveTo(p.x1,p.y1);ctx.lineTo(p.x2,p.y2);ctx.stroke()}
-  ctx.globalAlpha=1;if(segments.length)raf=requestAnimationFrame(draw);
+  raf=0;ctx.clearRect(0,0,width,height);
+  for(const [key,p] of pixels){const age=now-p.time;if(age>=p.life){pixels.delete(key);continue}let alpha=(1-age/p.life)*p.alpha;ctx.globalAlpha=alpha;ctx.fillStyle=`hsl(${p.hue} 100% 58%)`;ctx.fillRect(p.x*cell+1,p.y*cell+1,cell-2,cell-2)}
+  ctx.globalAlpha=1;if(pixels.size)raf=requestAnimationFrame(draw);
  }
  function interact(x,y){
   if(!active||motion.matches||document.hidden||document.body.classList.contains('password-locked')||!Number.isFinite(x)||!Number.isFinite(y))return;
-  const now=performance.now();if(last&&now-last.time<250&&Math.hypot(x-last.x,y-last.y)<250){hue=(hue+2)%360;segments.push({x1:last.x,y1:last.y,x2:x,y2:y,hue,time:now});if(segments.length>150)segments.shift();if(!raf)raf=requestAnimationFrame(draw)}last={x,y,time:now};
+  hue=(hue+2)%360;const cx=Math.floor(x/cell),cy=Math.floor(y/cell),now=performance.now();
+  for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
+   const distance=Math.hypot(dx,dy);if(distance>radius)continue;
+   const gx=cx+dx,gy=cy+dy;if(gx<0||gy<0||gx*cell>=width||gy*cell>=height)continue;
+   const alpha=.20+.65*(1-distance/(radius+1));
+   pixels.set(gx+','+gy,{x:gx,y:gy,hue:(hue+gx*8+gy*5+3600)%360,time:now,alpha,life:lifetime*(.72+Math.random()*.35)});
+  }
+  if(!raf)raf=requestAnimationFrame(draw);
  }
  function sync(){const wanted=document.body.dataset.decorBg==='rainbow-pixels'&&!document.body.dataset.customBg;if(wanted===active)return;active=!!wanted;if(active)size();else clear()}
  document.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')interact(e.clientX,e.clientY)},{passive:true});
  document.addEventListener('pointermove',e=>{if(e.pointerType!=='touch')interact(e.clientX,e.clientY)},{passive:true});
- document.addEventListener('pointerout',e=>{if(!e.relatedTarget&&e.pointerType!=='touch')last=null},{passive:true});
+ document.addEventListener('pointerout',e=>{if(!e.relatedTarget&&e.pointerType!=='touch'&&pixels.size&&!raf)raf=requestAnimationFrame(draw)},{passive:true});
  for(const name of ['touchstart','touchmove'])document.addEventListener(name,e=>{const t=e.touches[0];if(t)interact(t.clientX,t.clientY)},{passive:true});
- for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{const t=e.touches[0];if(t)interact(t.clientX,t.clientY);else last=null},{passive:true});
+ for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{const t=e.touches[0];if(t)interact(t.clientX,t.clientY)},{passive:true});
  window.addEventListener('resize',()=>{if(active)size()},{passive:true});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clear()});
  motion.addEventListener('change',clear);
