@@ -531,9 +531,13 @@ passwordForm.addEventListener('submit', async event => {
  const names={search:'Buscador',playlists:'Playlist',radio:'Radio',ai:'IA',games:'Juegos',tv:'TV',chat:'Chat',tools:'Herramientas'};
  const positionKey='dmfDesktopPositionsV1', W=96,H=96, gap=8;
  let positions={}, displayed={}, drag=null, suppressClick=false;
- try{const saved=JSON.parse(localStorage.getItem(positionKey)||'{}');for(const name of Object.keys(names)){const p=saved[name];if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y))positions[name]={x:Math.max(0,Math.min(1,p.x)),y:Math.max(0,Math.min(1,p.y))}}}catch{}
+ // Exchange the two old saved positions once; all other saved coordinates stay intact.
+ try{const saved=JSON.parse(localStorage.getItem(positionKey)||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved)){
+  if(!saved._iaGamesSwappedV1){const ai=saved.ai,games=saved.games;if(games===undefined)delete saved.ai;else saved.ai=games;if(ai===undefined)delete saved.games;else saved.games=ai;saved._iaGamesSwappedV1=true;try{localStorage.setItem(positionKey,JSON.stringify(saved))}catch{}}
+  for(const name of Object.keys(names)){const p=saved[name];if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y))positions[name]={x:Math.max(0,Math.min(1,p.x)),y:Math.max(0,Math.min(1,p.y))}}
+ }}catch{}
  try{localStorage.setItem('dmfLayoutV1','desktop')}catch{}
- function save(){try{localStorage.setItem(positionKey,JSON.stringify(positions));status.textContent='Posición guardada en este navegador.'}catch{status.textContent='No se pudo guardar la posición en este navegador.'}}
+ function save(){try{localStorage.setItem(positionKey,JSON.stringify({...positions,_iaGamesSwappedV1:true}));status.textContent='Posición guardada en este navegador.'}catch{status.textContent='No se pudo guardar la posición en este navegador.'}}
  function limits(){return {x:Math.max(0,grid.clientWidth-W),y:Math.max(0,grid.clientHeight-H)}}
  function overlaps(a,b){return a.x<b.x+W+gap&&a.x+W+gap>b.x&&a.y<b.y+H+gap&&a.y+H+gap>b.y}
  function clamp(p,l){return {x:Math.max(0,Math.min(l.x,p.x)),y:Math.max(0,Math.min(l.y,p.y))}}
@@ -546,7 +550,8 @@ passwordForm.addEventListener('submit', async event => {
  }
  function place(){if(home.hidden||!grid.clientWidth)return;const l=limits(),buttons=[...grid.querySelectorAll('.dmf-shortcut')],used=[];displayed={};
   const ordered=buttons.map((b,i)=>({b,i})).sort((a,b)=>Number(!!positions[b.b.dataset.section])-Number(!!positions[a.b.dataset.section]));
-  ordered.forEach(({b,i})=>{const saved=positions[b.dataset.section],row=Math.floor(i/2),side=i%2,rows=Math.ceil(buttons.length/2),step=rows>1?Math.min(H+gap,l.y/(rows-1)):0;
+  const aiIndex=buttons.findIndex(b=>b.dataset.section==='ai'),gamesIndex=buttons.findIndex(b=>b.dataset.section==='games');
+  ordered.forEach(({b,i})=>{const saved=positions[b.dataset.section],slot=aiIndex>=0&&gamesIndex>=0?(i===aiIndex?gamesIndex:i===gamesIndex?aiIndex:i):i,row=Math.floor(slot/2),side=slot%2,rows=Math.ceil(buttons.length/2),step=rows>1?Math.min(H+gap,l.y/(rows-1)):0;
    const desired=saved?{x:saved.x*l.x,y:saved.y*l.y}:{x:side?l.x:0,y:row*step};const p=findSpace(desired,used,l);used.push(p);displayed[b.dataset.section]=p;b.style.left=p.x+'px';b.style.top=p.y+'px';});
  }
  function storeAt(name,p){const l=limits(),used=Object.entries(displayed).filter(([n])=>n!==name).map(([,v])=>v),q=findSpace(p,used,l);positions[name]={x:l.x?q.x/l.x:0,y:l.y?q.y/l.y:0};save();place()}
@@ -567,7 +572,7 @@ passwordForm.addEventListener('submit', async event => {
   }updateBadge();place()}
  function showHome(focus=false){document.body.classList.add('dmf-home');home.hidden=false;document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=true;p.classList.remove('active')});nav.querySelectorAll('.section-tab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false')});build();window.dmfSendChatVisibility?.();if(focus)grid.querySelector('button')?.focus();window.scrollTo(0,0)}
  back.addEventListener('click',()=>showHome(true));
- document.getElementById('desktopReset').addEventListener('click',()=>{positions={};try{localStorage.setItem(positionKey,JSON.stringify(positions));document.getElementById('desktopResetStatus').textContent='Posiciones restablecidas en este navegador.'}catch{document.getElementById('desktopResetStatus').textContent='No se pudieron guardar las posiciones en este navegador.'}place()});
+ document.getElementById('desktopReset').addEventListener('click',()=>{positions={};try{localStorage.setItem(positionKey,JSON.stringify({_iaGamesSwappedV1:true}));document.getElementById('desktopResetStatus').textContent='Posiciones restablecidas en este navegador.'}catch{document.getElementById('desktopResetStatus').textContent='No se pudieron guardar las posiciones en este navegador.'}place()});
  window.addEventListener('dmf-settings-applied',build);window.addEventListener('resize',()=>{if(!drag)place()});new MutationObserver(updateBadge).observe(badge,{attributes:true,characterData:true,childList:true,subtree:true});
  document.body.classList.add('dmf-desktop');showHome();
 })();
