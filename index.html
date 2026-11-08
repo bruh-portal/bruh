@@ -204,7 +204,7 @@ body.dmf-desktop.dmf-home #dmfHome{padding:0 0 12px!important;min-height:0;point
 #tvShell:fullscreen>h2,#tvShell:fullscreen>p{display:none}
 :is(#gameFrame,#toolsFrame):fullscreen{width:100vw!important;height:100vh!important;height:100dvh!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;aspect-ratio:auto!important;border:0!important;border-radius:0!important}
 body[data-theme][data-decor-bg="rainbow-pixels"]{background:#000!important;animation:none!important;isolation:isolate}
-#dmfPixelBackground{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:none}
+#dmfPixelBackground{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:none;background-color:#05070a;background-image:linear-gradient(#ffffff0d 1px,transparent 1px),linear-gradient(90deg,#ffffff0d 1px,transparent 1px);background-size:20px 20px}
 body[data-decor-bg="rainbow-pixels"] #dmfPixelBackground{display:block}
 </style></head><body class="password-locked"><div id="passwordScreen"><form id="passwordForm" autocomplete="off"><h2>Página privada</h2><p>Introduce tu usuario y contraseña para continuar.</p><input id="pageUser" type="text" placeholder="Usuario" autocomplete="off" autocapitalize="none" spellcheck="false" required><input id="pagePassword" type="password" placeholder="Contraseña" autocomplete="new-password" required><button type="submit">Entrar</button><p id="passwordError" role="alert"></p></form></div><header id="dmfHeader" class="fixed-header"><h1>DMF</h1><button type="button" class="settings-gear" id="settingsOpen" aria-label="Abrir ajustes" title="Ajustes">⚙</button><button type="button" id="dmfHomeButton">⌂ Inicio</button><nav class="quick-nav" role="tablist" aria-label="Secciones"><button type="button" class="section-tab active" id="tab-search" role="tab" aria-selected="true" aria-controls="panel-search">Buscador</button><button type="button" class="section-tab" id="tab-playlists" role="tab" aria-selected="false" aria-controls="panel-playlists">Playlist</button><button type="button" class="section-tab" id="tab-radio" role="tab" aria-selected="false" aria-controls="panel-radio">Radio</button><button type="button" class="section-tab" id="tab-ai" role="tab" aria-selected="false" aria-controls="panel-ai">IA</button><button type="button" class="section-tab" id="tab-games" role="tab" aria-selected="false" aria-controls="panel-games">Juegos</button><button type="button" class="section-tab" id="tab-tv" role="tab" aria-selected="false" aria-controls="panel-tv">TV</button><button type="button" class="section-tab" id="tab-chat" role="tab" aria-selected="false" aria-controls="panel-chat">Chat <span id="chatUnreadBadge" class="chat-unread-badge" hidden aria-live="polite"></span></button><button type="button" class="section-tab" id="tab-tools" role="tab" aria-selected="false" aria-controls="panel-tools">Herramientas</button></nav></header><main class="app" id="dmfApp"><section id="dmfHome" hidden aria-label="Inicio de DMF"><div id="dmfShortcuts" class="dmf-shortcuts" aria-label="Accesos a las secciones"></div><span id="desktopStatus" class="dmf-sr-only" role="status" aria-live="polite"></span></section><div class="tab-panel active" id="panel-search" role="tabpanel" aria-labelledby="tab-search"><section class="search" id="search"><h2>🔎 Encuentra un vídeo</h2><p>Busca una canción o vídeo y elige el enlace que quieras reproducir.</p><form id="searchForm" class="controls"><input id="query" placeholder="¿Qué quieres buscar?" maxlength="180" required><button>Buscar</button></form><div id="results" aria-live="polite"></div></section><form id="playForm" class="controls"><input id="url" type="text" placeholder="Pega aquí un enlace de YouTube..." autocomplete="off"><button>Reproducir</button><button type="button" id="savePasted" class="favorite-toggle pasted-star" aria-label="Guardar enlace en la playlist seleccionada" title="Guardar en la playlist seleccionada">☆</button></form><div class="player"><iframe id="video" title="Reproductor de YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><div class="message" id="message">Pega un enlace de YouTube y pulsa Reproducir para comenzar.</div><section class="recommendations"><div class="rec-head"><h2>✨ Para ti</h2><button id="recClear" type="button">Borrar búsquedas</button></div><p id="recTopics"></p><p id="recStatus" role="status"></p><div id="dmfRecommendations" class="rec-grid"></div><small>Las búsquedas se guardan en este navegador y se envían al buscador para cargar los vídeos.</small></section></div><div class="tab-panel" id="panel-radio" role="tabpanel" aria-labelledby="tab-radio" hidden><section class="urban-card" id="radio" aria-label="Radio LOS40 Urban">
 <div class="urban-top"><span>RADIO EN DIRECTO</span><span class="urban-live"><span class="urban-dot"></span> <span id="stationTopName">LOS40 URBAN</span></span></div>
@@ -579,42 +579,51 @@ passwordForm.addEventListener('submit', async event => {
 
 </script><script>
 (()=>{
- // Retire the old trail preference without changing the chosen wallpaper.
- try{localStorage.removeItem('dmfRainbowPixelsV1')}catch{}
+ // This layer belongs only to the optional decorative wallpaper; it never handles input.
  const canvas=document.createElement('canvas');canvas.id='dmfPixelBackground';canvas.setAttribute('aria-hidden','true');document.body.prepend(canvas);
  const ctx=canvas.getContext('2d');if(!ctx)return;
  const motion=matchMedia('(prefers-reduced-motion: reduce)');
- let active=false,raf=0,last=0,w=0,h=0,cells=[],cols=0,rows=0,clearTimer=0;
- const spacing=28, colors=['#ff506f','#ffac45','#ffe565','#63e6a0','#58c7ff','#ab80ff'];
- function size(){w=innerWidth;h=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);cells=[];cols=Math.ceil(w/spacing);rows=Math.ceil(h/spacing);
-  for(let iy=0;iy<rows;iy++)for(let ix=0;ix<cols;ix++){const x=ix*spacing+spacing/2,y=iy*spacing+spacing/2,n=Math.sin(x*12.9898+y*78.233)*43758.5453,seed=n-Math.floor(n);cells.push({x,y,seed,color:colors[Math.floor(seed*colors.length)],t:-100000,force:0,dx:0,dy:0})}
- }
- function paint(now){
-  ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
-  for(const c of cells){const force=c.force*Math.max(0,1-(now-c.t)/6500);const twinkle=motion.matches?0:Math.sin(now/1700+c.seed*12)*.04;
-   ctx.globalAlpha=Math.min(.96,.17+c.seed*.18+twinkle+force*.67);ctx.fillStyle=c.color;
-   const z=3+c.seed*3+force*7, shift=motion.matches?0:force*18;ctx.fillRect(Math.round(c.x-z/2+c.dx*shift),Math.round(c.y-z/2+c.dy*shift),Math.round(z),Math.round(z));
+ const cell=20, lifetime=4200, maxCells=750;
+ let active=false,raf=0,lastFrame=0,width=0,height=0,previous=null,hue=0;
+ const cells=new Map();
+ function size(){width=innerWidth;height=innerHeight;const dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);cells.clear();previous=null;}
+ function draw(now){
+  ctx.clearRect(0,0,width,height);
+  for(const [key,c] of cells){const age=now-c.t;if(age>=lifetime){cells.delete(key);continue}
+   const fade=Math.pow(1-age/lifetime,1.65),alpha=c.power*fade;
+   ctx.globalAlpha=alpha*.22;ctx.fillStyle=`hsl(${c.hue} 100% 55%)`;ctx.fillRect(c.x*cell-3,c.y*cell-3,cell+6,cell+6);
+   ctx.globalAlpha=alpha;ctx.fillStyle=`hsl(${c.hue} 100% ${47+c.bright*18}%)`;ctx.fillRect(c.x*cell+1,c.y*cell+1,cell-2,cell-2);
   }ctx.globalAlpha=1;
  }
- function tick(t){raf=0;if(!active||document.hidden)return;if(!last||t-last>=50){paint(t);last=t}if(!motion.matches)raf=requestAnimationFrame(tick)}
- function start(){if(active)return;active=true;size();last=0;if(!document.hidden)raf=requestAnimationFrame(tick)}
- function stop(){active=false;if(raf)cancelAnimationFrame(raf);clearTimeout(clearTimer);raf=0;cells=[];ctx.clearRect(0,0,canvas.width,canvas.height)}
- function sync(){const wanted=document.body.dataset.decorBg==='rainbow-pixels'&&!document.body.dataset.customBg;if(wanted)start();else stop()}
- function interact(x,y){if(!active||document.hidden||document.body.classList.contains('password-locked')||!Number.isFinite(x)||!Number.isFinite(y))return;const now=performance.now(),radius=115;
-  const x0=Math.max(0,Math.floor((x-radius)/spacing)),x1=Math.min(cols-1,Math.floor((x+radius)/spacing)),y0=Math.max(0,Math.floor((y-radius)/spacing)),y1=Math.min(rows-1,Math.floor((y+radius)/spacing));
-  for(let iy=y0;iy<=y1;iy++)for(let ix=x0;ix<=x1;ix++){const c=cells[iy*cols+ix],dx=c.x-x,dy=c.y-y,d=Math.hypot(dx,dy);if(d<radius){c.force=Math.max(.3,1-d/radius);c.dx=dx/(d||1);c.dy=dy/(d||1);c.t=now}}
-  if(motion.matches){paint(now);clearTimeout(clearTimer);clearTimer=setTimeout(()=>{if(active)paint(performance.now())},6600)}
+ function tick(now){raf=0;if(!active||document.hidden||motion.matches)return;if(now-lastFrame>=32){draw(now);lastFrame=now}if(cells.size)raf=requestAnimationFrame(tick)}
+ function schedule(){if(active&&!motion.matches&&!document.hidden&&!raf&&cells.size)raf=requestAnimationFrame(tick)}
+ function stamp(x,y,now){
+  const cx=Math.floor(x/cell),cy=Math.floor(y/cell),radius=4;
+  for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
+   const distance=Math.hypot(dx,dy);if(distance>radius+.15)continue;
+   const gx=cx+dx,gy=cy+dy;if(gx<0||gy<0||gx*cell>=width||gy*cell>=height)continue;
+   const seed=Math.abs(Math.sin(gx*127.1+gy*311.7)*43758.5453)%1;
+   const power=Math.min(.78,(.17+.61*(1-distance/(radius+1)))*(.56+seed*.44));
+   const key=gx+','+gy;
+   cells.delete(key);cells.set(key,{x:gx,y:gy,t:now,power,bright:seed,hue:(hue+gx*2+gy*2+3600)%360});
+  }
+  while(cells.size>maxCells)cells.delete(cells.keys().next().value);
  }
+ function interact(x,y){
+  if(!active||motion.matches||document.hidden||document.body.classList.contains('password-locked')||!Number.isFinite(x)||!Number.isFinite(y))return;
+  const now=performance.now();if(previous&&now-previous.t<220){const distance=Math.hypot(x-previous.x,y-previous.y),steps=Math.min(60,Math.ceil(distance/(cell*.6)));for(let i=1;i<=steps;i++){hue=(hue+1.4)%360;stamp(previous.x+(x-previous.x)*i/steps,previous.y+(y-previous.y)*i/steps,now)}}else{hue=(hue+5)%360;stamp(x,y,now)}
+  previous={x,y,t:now};schedule();
+ }
+ function sync(){const wanted=document.body.dataset.decorBg==='rainbow-pixels'&&!document.body.dataset.customBg;if(wanted===active)return;active=!!wanted;if(active){size()}else{if(raf)cancelAnimationFrame(raf);raf=0;cells.clear();previous=null;ctx.clearRect(0,0,width,height)}}
  document.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')interact(e.clientX,e.clientY)},{passive:true});
  document.addEventListener('pointermove',e=>{if(e.pointerType!=='touch')interact(e.clientX,e.clientY)},{passive:true});
- // Touch events continue while the browser takes over a native scroll.
  for(const name of ['touchstart','touchmove'])document.addEventListener(name,e=>{for(const t of e.changedTouches)interact(t.clientX,t.clientY)},{passive:true});
- window.addEventListener('resize',()=>{if(active){size();paint(performance.now())}},{passive:true});
- document.addEventListener('visibilitychange',()=>{if(!active)return;if(document.hidden){if(raf)cancelAnimationFrame(raf);raf=0}else{last=0;if(!raf)raf=requestAnimationFrame(tick)}});
- motion.addEventListener('change',()=>{if(active){if(raf)cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)raf=requestAnimationFrame(tick)}});
+ window.addEventListener('resize',()=>{if(active)size()},{passive:true});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(raf)cancelAnimationFrame(raf);raf=0;previous=null}else schedule()});
+ motion.addEventListener('change',()=>{if(raf)cancelAnimationFrame(raf);raf=0;cells.clear();previous=null;ctx.clearRect(0,0,width,height)});
  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['data-decor-bg','data-custom-bg']});
  window.addEventListener('pagehide',()=>{if(raf)cancelAnimationFrame(raf);raf=0});
- window.addEventListener('pageshow',()=>{if(active&&!document.hidden&&!raf){last=0;raf=requestAnimationFrame(tick)}});
+ window.addEventListener('pageshow',schedule);
  sync();
 })();
 </script></body></html>
