@@ -382,7 +382,7 @@ passwordForm.addEventListener('submit', async event => {
  document.getElementById('musicChrome').onclick=()=>launch('https://musiclab.chromeexperiments.com/','🎼 Chrome Music Lab');
  for(const [button,view] of [['gameScratch','scratchView']])document.getElementById(button).onclick=()=>{frame.removeAttribute('src');show(view)}; document.getElementById('gameWeb').onclick=()=>launch('https://mashukui.github.io/web-games/','🕹️ Web Games');
  document.querySelectorAll('.game-group-back').forEach(button=>button.onclick=()=>show(null));
- document.getElementById('gameSky').onclick=()=>launch('https://diegomartinez-cmyk.github.io/skyrun/','Skyland');document.getElementById('gameShips').onclick=()=>launch('https://diegomartinez-cmyk.github.io/ships-of-madness/','Ship of Madness (space marcos)');
+ document.getElementById('gameSky').onclick=()=>launch('https://bruh-espacio.github.io/skyrun/','Skyland');document.getElementById('gameShips').onclick=()=>launch('https://bruh-espacio.github.io/ships-of-madness/','Ship of Madness (space marcos)');
  document.getElementById('gameVoxel').onclick=()=>launch('./voxelcraft.html','Minecraft');
  document.getElementById('gameGoogle').onclick=()=>show('googleView');
  document.getElementById('gamePerfectCircle').onclick=()=>launch('https://perfect-circle-game.pages.dev/','⭕ Círculo perfecto');
@@ -520,7 +520,7 @@ passwordForm.addEventListener('submit', async event => {
 })();
 </script><script>
 (()=>{
- const origin='https://diegomartinez-cmyk.github.io',frame=document.getElementById('chatFrame'),panel=document.getElementById('panel-chat'),badge=document.getElementById('chatUnreadBadge'),tab=document.getElementById('tab-chat');
+ const origin='https://bruh-espacio.github.io',frame=document.getElementById('chatFrame'),panel=document.getElementById('panel-chat'),badge=document.getElementById('chatUnreadBadge'),tab=document.getElementById('tab-chat');
  function sendVisibility(){frame.contentWindow?.postMessage({source:'dmf-main',type:'visibility',visible:!panel.hidden&&!document.body.classList.contains('password-locked')&&document.visibilityState==='visible'},origin);}
  window.dmfSendChatVisibility=sendVisibility;
  window.dmfStartChat=()=>{if(!frame.getAttribute('src')){frame.loading='eager';frame.src=origin+'/DMF-CHAT/';}else sendVisibility();};
