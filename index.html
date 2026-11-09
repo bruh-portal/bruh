@@ -635,10 +635,11 @@ passwordForm.addEventListener('submit', async event => {
  function interact(x,y){
   if(!active||motion.matches||document.hidden||document.body.classList.contains('password-locked')||!Number.isFinite(x)||!Number.isFinite(y))return;
   hue=(hue+2)%360;const cx=Math.floor(x/cell),cy=Math.floor(y/cell),now=performance.now();
-  pixels.clear();
-  for(const [dx,dy] of [[0,0],[-1,0],[1,0],[0,-1],[0,1]]){
+  for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
+   const distance=Math.hypot(dx,dy);if(distance>radius)continue;
    const gx=cx+dx,gy=cy+dy;if(gx<0||gy<0||gx*cell>=width||gy*cell>=height)continue;
-   pixels.set(gx+','+gy,{x:gx,y:gy,hue:(hue+gx*8+gy*5+3600)%360,time:now,alpha:.85,life:lifetime});
+   const alpha=.20+.65*(1-distance/(radius+1));
+   pixels.set(gx+','+gy,{x:gx,y:gy,hue:(hue+gx*8+gy*5+3600)%360,time:now,alpha,life:lifetime*(.72+Math.random()*.35)});
   }
   if(!raf)raf=requestAnimationFrame(draw);
  }
