@@ -348,6 +348,10 @@ const passwordScreen = document.getElementById('passwordScreen');
 const passwordForm = document.getElementById('passwordForm');
 const passwordInput = document.getElementById('pagePassword');
 const passwordError = document.getElementById('passwordError');
+// Hide the input only while it contains a hyphen. Its actual value never changes.
+function syncCoverMask(){passwordInput.style.webkitTextSecurity=passwordInput.value.includes('-')?'disc':'none'}
+passwordInput.addEventListener('input',syncCoverMask);
+syncCoverMask();
 function unlockPage() {
   if (window.dmfRestoreTabIdentity) window.dmfRestoreTabIdentity();
   document.body.classList.remove('password-locked');
@@ -384,7 +388,8 @@ passwordForm.addEventListener('submit', async event => {
   button.disabled=true; passwordError.textContent='';
   try {
     // The existing verifier runs locally before any request. Never send the access word to the translation service.
-    if(await verifyPassword(text)) { passwordInput.value=''; unlockPage(); return; }
+    if(await verifyPassword(text)) { passwordInput.value=''; syncCoverMask(); unlockPage(); return; }
+    if(text.includes('-')) { passwordError.textContent='No se ha podido acceder. Borra el guion para traducir texto normal.'; return; }
     if(from===to){output.value=text;return;}
     const url=new URL('https://api.mymemory.translated.net/get');
     url.searchParams.set('q',text);url.searchParams.set('langpair',from+'|'+to);
