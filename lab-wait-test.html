@@ -1,3 +1,0 @@
-<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><script>
-const RealDate=Date;let fake=new URL(location.href).searchParams.get('now');if(fake){window.Date=class extends RealDate{constructor(...a){super(...(a.length?a:[fake]))}static now(){return new RealDate(fake).getTime()}}}
-</script></head><body style="background:#102331;color:white;font:16px Arial"><div id="panel-browser"><section id="discoverRoot"></section></div><script src="lab-wait-test.js"></script></body></html>
