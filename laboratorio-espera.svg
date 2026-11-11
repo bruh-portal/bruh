@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-labelledby="title desc">
+<title id="title">Un laboratorio lleno de inventos</title><desc id="desc">Exterior de un laboratorio de dibujos, con ventanas iluminadas y burbujas de colores que suben por una chimenea.</desc>
+<defs><filter id="shade" x="-.2" y="-.2" width="1.4" height="1.4"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#346875" flood-opacity=".22"/></filter></defs>
+<rect width="900" height="540" rx="28" fill="#a8eaf0"/>
+<circle cx="756" cy="102" r="56" fill="#fff4aa" opacity=".85"/>
+<g fill="#fff" opacity=".78"><path d="M77 120c-4-24 29-32 42-13 10-31 55-27 60 3 25-3 31 29 5 31H83c-19-1-21-19-6-21z"/><path d="M653 174c1-18 28-24 38-8 7-22 40-23 46 0 21-4 27 21 7 23h-91c-16 0-17-13 0-15z"/></g>
+<path d="M0 425q125-77 261-10 125-62 257-3 160-60 382-4v132H0z" fill="#9fdb92"/><path d="M0 458q177-64 337-4 177-55 350-7 111-35 213-9v102H0z" fill="#77c68f"/>
+<!-- little shrubs and trees -->
+<g stroke="#3d7b69" stroke-width="5" stroke-linecap="round"><path d="M95 439v-79m0 36-20-18m20 4 21-18M805 443v-89m0 42-22-19m22-4 23-16"/><g fill="#4dbb8d" stroke="#3d947c"><circle cx="75" cy="361" r="25"/><circle cx="104" cy="347" r="33"/><circle cx="124" cy="364" r="23"/><circle cx="783" cy="354" r="24"/><circle cx="810" cy="337" r="34"/><circle cx="836" cy="357" r="24"/></g></g>
+<ellipse cx="453" cy="468" rx="305" ry="30" fill="#357d72" opacity=".2"/>
+<g filter="url(#shade)" stroke="#354c70" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+<!-- laboratory wings -->
+<path d="M186 274h160v165H186zM560 274h155v165H560z" fill="#f5bc7a"/>
+<path d="M170 269l24-48h151l22 48zM545 269l22-48h142l23 48z" fill="#7666b8"/>
+<!-- main building -->
+<path d="M302 218h302v226H302z" fill="#ffdb97"/>
+
+<path d="M278 216l40-67h271l42 67z" fill="#7666b8"/>
+<path d="M311 196h289" fill="none" stroke="#b6a9ea" stroke-width="5"/>
+<!-- roof instruments -->
+<path d="M355 149v-37h75v37M367 111V90h52v21" fill="#ef947e"/>
+<path d="M502 149v-59h47v59M491 88h69V71h-69z" fill="#7e8dc2"/>
+<path d="M567 149v-20q0-22 22-22h27" fill="none" stroke="#6675a6" stroke-width="13"/>
+<circle cx="617" cy="107" r="10" fill="#f5b65e"/>
+<!-- window left -->
+<rect x="207" y="300" width="105" height="96" rx="10" fill="#66cce6"/>
+<path d="M259 301v94M208 348h103" fill="none"/><path d="M218 310l19 0-19 27zM271 310h18l-18 25z" fill="#d5ffff" stroke="none" opacity=".6"/>
+<!-- window right -->
+<rect x="594" y="300" width="99" height="96" rx="10" fill="#66cce6"/>
+<path d="M643 301v94M595 348h97" fill="none"/><path d="M604 310h18l-18 25zM654 310h17l-17 23z" fill="#d5ffff" stroke="none" opacity=".6"/>
+<!-- door -->
+<path d="M404 444v-95q0-48 48-48t48 48v95z" fill="#647cb3"/><path d="M416 374v-25q0-36 36-36t36 36v25z" fill="#94eaf2"/><path d="M452 314v60"/><circle cx="479" cy="405" r="5" fill="#ffe899" stroke="none"/>
+<!-- circular flask sign -->
+<circle cx="452" cy="251" r="44" fill="#fff7d9"/><path d="M444 227h16m-13 0v15l-12 21q-3 8 6 8h23q9 0 6-8l-12-21v-15" fill="#8adfe6" stroke-width="4"/><path d="M440 255h25l5 9q2 6-5 6h-24q-6 0-3-6z" fill="#8be3a4" stroke="none"/><circle cx="451" cy="251" r="3" fill="#fff" stroke="none"/>
+<!-- equipment on each side -->
+<path d="M193 437h145M565 437h149" fill="none"/><path d="M320 386h48v52h-48z" fill="#f1aa73"/><circle cx="344" cy="409" r="13" fill="#bcecf0"/><path d="M543 361h33v77h-33z" fill="#f5b57d"/><circle cx="559" cy="376" r="5" fill="#86e5a5" stroke="none"/><circle cx="559" cy="393" r="5" fill="#f6dc75" stroke="none"/>
+</g>
+<!-- steam and bright bubbles: experiment underway -->
+<path d="M525 70c-18-18 17-26 2-42" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".8"/>
+<g stroke="#fff" stroke-width="3" opacity=".95"><circle cx="476" cy="89" r="10" fill="#ec83c2"/><circle cx="464" cy="63" r="6" fill="#f9cb54"/><circle cx="558" cy="42" r="12" fill="#8ce4b0"/><circle cx="583" cy="27" r="6" fill="#7ec6ef"/><circle cx="489" cy="33" r="5" fill="#f6b38d"/></g>
+<g fill="#fff8bf"><path d="M648 192l4 11 11 4-11 4-4 11-4-11-11-4 11-4zM248 166l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/></g>
+<path d="M355 473q96-32 195 0l53 67H302z" fill="#fbe1a2" opacity=".85"/>
+<g fill="#f8f7c0"><circle cx="176" cy="463" r="4"/><circle cx="730" cy="467" r="4"/><circle cx="137" cy="481" r="3"/><circle cx="764" cy="489" r="3"/></g>
+</svg>
