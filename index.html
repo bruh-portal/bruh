@@ -1038,7 +1038,7 @@ async function discover(){
 async function newBatch(){
  if(batchBusy||!active)return;batchBusy=true;const generation=feedGeneration;
  // Prefetch at most one topic per batch, with a per-browser cooldown in addition to the shared worker quota/cache.
- const now=Date.now();if(now>=discoveryRetryAt&&now-lastDiscoveryAt>=90000){lastDiscoveryAt=now;await discover()}
+ const now=Date.now();if(now>=discoveryRetryAt&&now-lastDiscoveryAt>=90000){lastDiscoveryAt=now;await Promise.race([discover(),new Promise(resolve=>setTimeout(resolve,9000))])}
  if(!active||generation!==feedGeneration)return;
  const queued=new Set(history);const eligible=videos.filter(v=>selected.has(v.topic)&&!seen.has(v.id)&&!queued.has(v.id));
  if(!eligible.length){batchBusy=false;if(!history.length){stopShortsPlayer();$('shortsTitle').textContent='No hay vídeos nuevos disponibles ahora'}if(pos>=history.length-1){$('shortsProgress').textContent='No hay más vídeos nuevos disponibles ahora. Vuelve más tarde: el catálogo y la cuota son limitados.'}return}
