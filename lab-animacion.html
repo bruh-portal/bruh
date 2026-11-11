@@ -6,7 +6,7 @@
 .scene.active#s6 .art{animation:pourMotion 1.1s ease-in-out infinite alternate}
 .scene.active#s7 .art{animation:reactionMotion .8s ease-in-out infinite alternate}
 .scene.active#s8 .art{animation:scaredMotion .22s linear infinite}
-.scene.active#s9 .art{animation:explosionMotion .16s ease-in-out infinite alternate}
+.scene#s9{transition:none}.scene.active#s9 .art{animation:explosionMotion .16s ease-in-out infinite alternate}
 @keyframes pourMotion{from{transform:translateY(0) rotate(0deg);filter:brightness(1)}to{transform:translateY(-3px) rotate(-.35deg);filter:brightness(1.08)}}
 @keyframes reactionMotion{from{transform:scale(1);filter:brightness(1)}to{transform:scale(1.025);filter:brightness(1.2)}}
 @keyframes scaredMotion{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
@@ -37,11 +37,18 @@ const s8variants={"naranja": "data:image/webp;base64,UklGRrCAAQBXRUJQVlA4IKSAAQB
 try {muted=localStorage.getItem('dmf_lab_mute')==='1'} catch(e){}
 function syncMute(){audio.muted=muted;$('#mute').textContent=muted?'🔇 Activar sonido':'🔊 Silenciar';$('#mute').setAttribute('aria-pressed',String(muted))}syncMute();
 $('#mute').onclick=()=>{muted=!muted;syncMute();try{localStorage.setItem('dmf_lab_mute',muted?'1':'0')}catch(e){};if(!muted)unlockSound()};
-function unlockSound(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume()}catch(e){}}
-function boom(){if(muted||!ctx||ctx.state!=='running')return;try{const t=ctx.currentTime;const master=ctx.createGain();master.gain.value=.62;master.connect(ctx.destination);const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='triangle';osc.frequency.setValueAtTime(190,t);osc.frequency.exponentialRampToValueAtTime(65,t+.48);gain.gain.setValueAtTime(.32,t);gain.gain.exponentialRampToValueAtTime(.001,t+.7);osc.connect(gain);gain.connect(master);osc.start(t);osc.stop(t+.71);const len=Math.floor(ctx.sampleRate*.65),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*.18));let n=ctx.createBufferSource(),g=ctx.createGain(),f=ctx.createBiquadFilter();n.buffer=buf;f.type='lowpass';f.frequency.value=3200;g.gain.value=.42;n.connect(f);f.connect(g);g.connect(master);n.start(t)}catch(e){}}
+function unlockSound(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state!=='running')ctx.resume().catch(()=>{});}catch(e){}}
+function boom(){
+ if(muted||!ctx||ctx.state!=='running')return;
+ try{const t=ctx.currentTime, master=ctx.createGain(),limiter=ctx.createDynamicsCompressor();
+  master.gain.value=.55;limiter.threshold.value=-12;limiter.knee.value=8;limiter.ratio.value=8;limiter.attack.value=.003;limiter.release.value=.2;master.connect(limiter);limiter.connect(ctx.destination);
+  const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='triangle';osc.frequency.setValueAtTime(180,t);osc.frequency.exponentialRampToValueAtTime(48,t+.5);gain.gain.setValueAtTime(.42,t);gain.gain.exponentialRampToValueAtTime(.001,t+.85);osc.connect(gain);gain.connect(master);osc.start(t);osc.stop(t+.86);
+  const len=Math.floor(ctx.sampleRate*.7),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*.2));const n=ctx.createBufferSource(),g=ctx.createGain(),f=ctx.createBiquadFilter();n.buffer=buf;f.type='lowpass';f.frequency.value=2400;g.gain.value=.55;n.connect(f);f.connect(g);g.connect(master);n.start(t);n.stop(t+.7);setTimeout(()=>{master.disconnect();limiter.disconnect()},1200);
+ }catch(e){}
+}
 function show(n){document.querySelectorAll('.scene').forEach(x=>x.classList.remove('active'));$('#s'+n).classList.add('active')}
 function end(){if(phase==='done')return;phase='done';audio.pause();parent.postMessage({type:'dmf-lab-finished'},location.origin)}
-function burst(){if(phase==='burst'||phase==='done')return;phase='burst';show(9);$('#flash').classList.remove('go');void $('#flash').offsetWidth;$('#flash').classList.add('go');$('#bar').style.width='100%';boom();finishTimer=setTimeout(end,1800)}
+function burst(){if(phase==='burst'||phase==='done')return;phase='burst';audio.pause();show(9);$('#flash').classList.remove('go');void $('#flash').offsetWidth;$('#flash').classList.add('go');$('#bar').style.width='100%';boom();finishTimer=setTimeout(end,1800)}
 function start(){if(phase!=='outside'&&phase!=='blocked')return;unlockSound();audio.currentTime=0;phase='story';show(2);const p=audio.play();if(p&&p.catch)p.catch(()=>{phase='blocked';show(1);$('#start').textContent='Toca para iniciar la animación y el sonido'})}
 $('#start').addEventListener('click',start);
 audio.addEventListener('timeupdate',()=>{const t=audio.currentTime,d=audio.duration||25.6;$('#bar').style.width=Math.min(99,t/d*100)+'%';if(phase==='story'&&t>=2.7&&t<5.9)show(3);if(phase==='story'&&t>=5.9&&t<8.7)show(4);if(phase==='story'&&!choiceShown&&t>=8.7){choiceShown=true;$('#choices').classList.remove('hidden');show(5)}if(phase==='story'&&choiceShown&&t>=11.9){if(!chosen){phase='choosing';audio.pause()}else{phase='pour';$('#choices').classList.add('hidden');show(6)}}if(phase==='pour'&&t>=15.4){phase='reaction';show(7)}if(phase==='reaction'&&t>=22.3){phase='scared';show(8)}if(phase==='scared'&&t>=24.1)burst()});
