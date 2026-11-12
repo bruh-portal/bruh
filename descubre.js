@@ -17,7 +17,7 @@ const sceneStyle=document.createElement('style');sceneStyle.textContent=`
 #discoverRoot.lab-ruin>h2,#discoverRoot.lab-ruin>p{max-width:700px;margin-left:auto;margin-right:auto;padding:10px 14px;border-radius:12px;background:#071a2bf0;color:#fff}
 #discoverRoot.lab-ruin .discover-card{background:#071a2bf2!important;border:1px solid #a4eef3aa;box-shadow:0 8px 30px #0008;color:#fff;max-width:700px;margin:auto;width:100%;box-sizing:border-box}
 #discoverRoot.lab-ruin .discover-card p{color:#fff}#discoverRoot.lab-ruin button{min-height:44px}
-@media(max-width:600px){#discoverRoot.lab-ruin{padding-top:min(56vw,32vh);padding-bottom:24vh;background-size:100% auto;background-repeat:no-repeat;background-attachment:scroll;background-position:center top}#discoverRoot.lab-ruin .discover-card{overflow-wrap:anywhere}}
+@media(max-width:600px){#discoverRoot.lab-ruin{padding-top:calc(74.34vw + 12px);padding-bottom:24vh;background-size:100% auto;background-repeat:no-repeat;background-attachment:scroll;background-position:center top}#discoverRoot.lab-ruin .discover-card{overflow-wrap:anywhere}}
 `;document.head.append(sceneStyle);
 let previousOverflow=null;function lockIntro(){if(previousOverflow===null){previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden'}}function unlockIntro(){if(previousOverflow!==null){document.body.style.overflow=previousOverflow;previousOverflow=null}}
 function endIntro(){if(!introSlot||introSlot!==state.slot)return;lab.hidden=true;unlockIntro();$('labAnimation').removeAttribute('src');$('discoverCards').hidden=false;$('discoverInfo').hidden=true;introSeen=introSlot;try{localStorage.setItem('dmf_lab_intro_daily_v2',introSeen)}catch(e){}introSlot=null}
