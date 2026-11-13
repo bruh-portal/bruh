@@ -56,6 +56,40 @@ function save(){try{localStorage.setItem(key,JSON.stringify({slot:state.slot,ind
 function el(tag,text,parent){let n=document.createElement(tag);if(text!==null)n.textContent=text;parent.append(n);return n}
 function button(text,parent,fn){let b=el('button',text,parent);b.type='button';b.style.margin='6px';b.addEventListener('click',fn);return b}
 function canvas(parent){let c=el('canvas',null,parent);c.width=360;c.height=240;c.style.cssText='display:block;max-width:100%;width:360px;height:auto;background:#e5f8ff;border-radius:12px;touch-action:manipulation';return c}
+const rotationKey='dmf_lab_rotation_v2';
+const rotationVersion=2;
+function shuffleMissionIds(ids){const a=ids.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function readRotation(activeId){
+ let r=null;try{r=JSON.parse(localStorage.getItem(rotationKey))}catch(e){}
+ if(r&&r.version===rotationVersion&&Array.isArray(r.remaining)&&Array.isArray(r.seen)){
+  r.seen=r.seen.filter((x,i,a)=>catalogue.includes(x)&&a.indexOf(x)===i);
+  r.remaining=r.remaining.filter((x,i,a)=>catalogue.includes(x)&&a.indexOf(x)===i&&!r.seen.includes(x));
+  // Repair partial/corrupt records without forgetting missions already served.
+  for(const id of catalogue)if(!r.seen.includes(id)&&!r.remaining.includes(id))r.remaining.push(id);
+ }else{
+  // Upgrade the previous shuffle-bag in place, inferring its consumed portion.
+  let old=null;try{old=JSON.parse(localStorage.getItem('dmf_lab_mission_bag_v1'))}catch(e){}
+  const remaining=old&&Array.isArray(old.remaining)?old.remaining.filter((x,i,a)=>catalogue.includes(x)&&a.indexOf(x)===i):[];
+  const seen=catalogue.filter(x=>!remaining.includes(x));
+  if(old&&catalogue.includes(old.last)&&!seen.includes(old.last))seen.push(old.last);
+  if(catalogue.includes(activeId)&&!seen.includes(activeId)){seen.push(activeId);}
+  r={version:rotationVersion,seen,remaining:shuffleMissionIds(catalogue.filter(x=>!seen.includes(x)))};
+ }
+ // Keep the immediately previous active mission out even if a stale/partial record omitted it.
+ if(catalogue.includes(activeId)&&!r.seen.includes(activeId)){
+  r.remaining=r.remaining.filter(x=>x!==activeId);r.seen.push(activeId);
+ }
+ if(!r.remaining.length){
+  // A cycle is exactly the full catalogue. Shuffle all six again, then swap
+  // the first pick if needed so the cycle boundary cannot repeat the last ID.
+  r.seen=[];
+  r.remaining=shuffleMissionIds(catalogue);
+  if(r.remaining[0]===activeId){const n=r.remaining.findIndex(x=>x!==activeId);[r.remaining[0],r.remaining[n]]=[r.remaining[n],r.remaining[0]]}
+ }
+ const id=r.remaining.shift();r.seen.push(id);
+ try{localStorage.setItem(rotationKey,JSON.stringify(r))}catch(e){}
+ return id;
+}
 function choose(t){
  let s=null;try{s=JSON.parse(localStorage.getItem(key))}catch(e){}
  const legacy=legacyTimeInfo(new Date()), migrated=!!(s&&s.slot===legacy.slot), same=!!(s&&(s.slot===t.slot||migrated));
@@ -65,17 +99,9 @@ function choose(t){
  if(same&&Number.isInteger(s.attempts)&&s.attempts>=0&&s.attempts<=3){attempts=s.attempts;result=['won','lost','playing',''].includes(s.result)?s.result:'';if(result==='playing'&&(s.gameId||games[index%4])!=='wordle')result='lost'}
  let gameId=same?(catalogue.includes(s.gameId)?s.gameId:games[index%4]):null;
  if(!gameId){
-  let bag;try{bag=JSON.parse(localStorage.getItem('dmf_lab_mission_bag_v1'))}catch(e){}
-  if(!bag||!Array.isArray(bag.remaining))bag={remaining:[],last:null};
-  bag.remaining=bag.remaining.filter((x,i,a)=>catalogue.includes(x)&&a.indexOf(x)===i);
-  if(!bag.remaining.length){bag.remaining=catalogue.slice();for(let i=bag.remaining.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[bag.remaining[i],bag.remaining[j]]=[bag.remaining[j],bag.remaining[i]]}if(bag.remaining[0]===bag.last)[bag.remaining[0],bag.remaining[1]]=[bag.remaining[1],bag.remaining[0]]}
-  // Preserve cargo for tonight when the current 18:00 slot has not yet been selected.
-  if(t.slot==='v2-2026-11-11-18'&&bag.remaining[0]==='cargo'&&bag.remaining.length>1){let n=bag.remaining.findIndex(x=>x!=='cargo');[bag.remaining[0],bag.remaining[n]]=[bag.remaining[n],bag.remaining[0]]}
-  // Tonight's requested mission, but never replace an existing active slot.
-  if(t.slot==='v2-2026-11-11-21'&&bag.remaining.includes('cargo')){bag.remaining.splice(bag.remaining.indexOf('cargo'),1);gameId='cargo'}else gameId=bag.remaining.shift();
-  bag.last=gameId;try{localStorage.setItem('dmf_lab_mission_bag_v1',JSON.stringify(bag))}catch(e){}
+  const previouslyActive=s&&catalogue.includes(s.gameId)?s.gameId:null;
+  gameId=readRotation(previouslyActive);
  }
- if(same){try{if(!localStorage.getItem('dmf_lab_mission_bag_v1'))localStorage.setItem('dmf_lab_mission_bag_v1',JSON.stringify({remaining:catalogue.filter(x=>x!==gameId),last:gameId}))}catch(e){}}
  state={slot:t.slot,seedSlot,ids:[String(index)],index,attempts,result,gameId,wordle:same?s.wordle:null};
  if(migrated&&introSeen===s.slot){introSeen=t.slot;try{localStorage.setItem('dmf_lab_intro_daily_v2',introSeen)}catch(e){}}
  save();
