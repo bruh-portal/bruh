@@ -56,38 +56,35 @@ function save(){try{localStorage.setItem(key,JSON.stringify({slot:state.slot,ind
 function el(tag,text,parent){let n=document.createElement(tag);if(text!==null)n.textContent=text;parent.append(n);return n}
 function button(text,parent,fn){let b=el('button',text,parent);b.type='button';b.style.margin='6px';b.addEventListener('click',fn);return b}
 function canvas(parent){let c=el('canvas',null,parent);c.width=360;c.height=240;c.style.cssText='display:block;max-width:100%;width:360px;height:auto;background:#e5f8ff;border-radius:12px;touch-action:manipulation';return c}
-const rotationKey='dmf_lab_rotation_v2';
-const rotationVersion=2;
+const rotationKey='dmf_lab_weekly_schedule_v1';
 function shuffleMissionIds(ids){const a=ids.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function readRotation(activeId){
- let r=null;try{r=JSON.parse(localStorage.getItem(rotationKey))}catch(e){}
- if(r&&r.version===rotationVersion&&Array.isArray(r.remaining)&&Array.isArray(r.seen)){
-  r.seen=r.seen.filter((x,i,a)=>catalogue.includes(x)&&a.indexOf(x)===i);
-  r.remaining=r.remaining.filter((x,i,a)=>catalogue.includes(x)&&a.indexOf(x)===i&&!r.seen.includes(x));
-  // Repair partial/corrupt records without forgetting missions already served.
-  for(const id of catalogue)if(!r.seen.includes(id)&&!r.remaining.includes(id))r.remaining.push(id);
- }else{
-  // Upgrade the previous shuffle-bag in place, inferring its consumed portion.
-  let old=null;try{old=JSON.parse(localStorage.getItem('dmf_lab_mission_bag_v1'))}catch(e){}
-  const remaining=old&&Array.isArray(old.remaining)?old.remaining.filter((x,i,a)=>catalogue.includes(x)&&a.indexOf(x)===i):[];
-  const seen=catalogue.filter(x=>!remaining.includes(x));
-  if(old&&catalogue.includes(old.last)&&!seen.includes(old.last))seen.push(old.last);
-  if(catalogue.includes(activeId)&&!seen.includes(activeId)){seen.push(activeId);}
-  r={version:rotationVersion,seen,remaining:shuffleMissionIds(catalogue.filter(x=>!seen.includes(x)))};
+function weekSlot(t){
+ const m=/^v2-(\d{4})-(\d+)-(\d+)-(\d+)$/.exec(t.slot);
+ if(!m)return{week:'unknown',index:0};
+ const year=+m[1],month=+m[2]-1,day=+m[3],hour=+m[4],d=new Date(year,month,day),dow=(d.getDay()+6)%7,pos=[8,9,10,11,12,13,14,15,18,21].indexOf(hour);
+ const monday=new Date(year,month,day-dow);
+ return{week:[monday.getFullYear(),monday.getMonth()+1,monday.getDate()].join('-'),index:dow*10+Math.max(0,pos)};
+}
+function makeWeeklyPlan(activeId,index,previousId){
+ // A full schedule week has 70 slots: every mission occurs three times and
+ // seven distinct missions get one extra appearance. Avoid repeats within the
+ // week, at its boundary, and at the currently active slot during migration.
+ const extras=shuffleMissionIds(catalogue).slice(0,7),pool=catalogue.flatMap(id=>[id,id,id].concat(extras.includes(id)?[id]:[]));
+ for(let tries=0;tries<5000;tries++){
+  const ids=shuffleMissionIds(pool);
+  if(ids.every((id,i)=>i===0||id!==ids[i-1])&&(!catalogue.includes(previousId)||ids[0]!==previousId)&&(!catalogue.includes(activeId)||ids[index]!==activeId))return ids;
  }
- // Keep the immediately previous active mission out even if a stale/partial record omitted it.
- if(catalogue.includes(activeId)&&!r.seen.includes(activeId)){
-  r.remaining=r.remaining.filter(x=>x!==activeId);r.seen.push(activeId);
+ // Highly unlikely fallback; use the shuffled quota-preserving pool.
+ return shuffleMissionIds(pool);
+}
+function readRotation(activeId,t){
+ const w=weekSlot(t);let schedule=null;try{schedule=JSON.parse(localStorage.getItem(rotationKey))}catch(e){}
+ if(!schedule||schedule.version!==1||schedule.week!==w.week||!Array.isArray(schedule.ids)||schedule.ids.length!==70||schedule.ids.some(id=>!catalogue.includes(id))){
+  const previousId=schedule&&Array.isArray(schedule.ids)?schedule.ids[69]:null;
+  schedule={version:1,week:w.week,ids:makeWeeklyPlan(activeId,w.index,previousId)};
  }
- if(!r.remaining.length){
-  // A cycle is exactly the full catalogue. Shuffle every mission again, then swap
-  // the first pick if needed so the cycle boundary cannot repeat the last ID.
-  r.seen=[];
-  r.remaining=shuffleMissionIds(catalogue);
-  if(r.remaining[0]===activeId){const n=r.remaining.findIndex(x=>x!==activeId);[r.remaining[0],r.remaining[n]]=[r.remaining[n],r.remaining[0]]}
- }
- const id=r.remaining.shift();r.seen.push(id);
- try{localStorage.setItem(rotationKey,JSON.stringify(r))}catch(e){}
+ const id=schedule.ids[w.index];
+ try{localStorage.setItem(rotationKey,JSON.stringify(schedule))}catch(e){}
  return id;
 }
 function choose(t){
@@ -100,7 +97,7 @@ function choose(t){
  let gameId=same?(catalogue.includes(s.gameId)?s.gameId:games[index%4]):null;
  if(!gameId){
   const previouslyActive=s&&catalogue.includes(s.gameId)?s.gameId:null;
-  gameId=readRotation(previouslyActive);
+  gameId=readRotation(previouslyActive,t);
  }
  state={slot:t.slot,seedSlot,ids:[String(index)],index,attempts,result,gameId,wordle:same?s.wordle:null};
  if(migrated&&introSeen===s.slot){introSeen=t.slot;try{localStorage.setItem('dmf_lab_intro_daily_v2',introSeen)}catch(e){}}
