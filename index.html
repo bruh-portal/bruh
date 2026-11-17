@@ -647,8 +647,16 @@ passwordForm.addEventListener('submit', async event => {
  document.getElementById('dmfNewsButton').addEventListener('click',()=>{showTab('news');back.focus();window.scrollTo(0,0)});
  document.getElementById('dmfRiddleButton').addEventListener('click',()=>{showTab('games');document.getElementById('panel-games').classList.add('riddle-only');back.focus();document.getElementById('dailyRiddle').scrollIntoView({behavior:'smooth',block:'start'})});
  document.getElementById('openLabFromGames').addEventListener('click',()=>{showTab('browser');back.focus();window.scrollTo(0,0)});
-document.getElementById('dmfSportsButton').addEventListener('click',()=>{window.dmfLeaveHome?.();showTab('search');const target='https://bruh-portal.github.io/bruh/deportes-dmf.html';let f=document.getElementById('sportsFrame');if(!f){const panel=document.createElement('div');panel.id='sportsPanel';panel.style.cssText='position:fixed;inset:70px 0 0;z-index:9000;background:#080d19';panel.innerHTML='<iframe id="sportsFrame" title="Deportes DMF" allow="fullscreen" allowfullscreen style="width:100%;height:100%;border:0"></iframe>';document.body.append(panel);f=document.getElementById('sportsFrame')}f.src=target;});
-window.addEventListener('message',e=>{if(e.origin==='https://bruh-portal.github.io'&&e.source===document.getElementById('sportsFrame')?.contentWindow&&e.data?.type==='dmf-sports-home'){document.getElementById('sportsPanel')?.remove();document.getElementById('dmfHomeButton')?.click()}});
+document.getElementById('dmfSportsButton').addEventListener('click',()=>{window.dmfLeaveHome?.();showTab('search');const target='https://bruh-portal.github.io/bruh/deportes-dmf.html?v=navfix-20261117-1640';let f=document.getElementById('sportsFrame');if(!f){const panel=document.createElement('div');panel.id='sportsPanel';panel.style.cssText='position:fixed;inset:70px 0 0;z-index:9000;background:#080d19';panel.innerHTML='<iframe id="sportsFrame" title="Deportes DMF" allow="fullscreen" allowfullscreen style="width:100%;height:100%;border:0"></iframe>';document.body.append(panel);f=document.getElementById('sportsFrame')}f.src=target;});
+window.addEventListener('message',e=>{
+ if(e.origin!=='https://bruh-portal.github.io'||e.data?.type!=='dmf-sports-home'||e.data?.source!=='dmf-sports')return;
+ const wrapper=document.getElementById('sportsFrame');if(!wrapper)return;
+ let nested=null;try{nested=wrapper.contentDocument?.querySelector('#sports-frame')?.contentWindow||null}catch{}
+ if(e.source!==wrapper.contentWindow&&e.source!==nested)return;
+ try{e.source.postMessage({type:'dmf-sports-home-ack'},'https://bruh-portal.github.io')}catch{}
+ document.getElementById('sportsPanel')?.remove();
+ document.getElementById('dmfHomeButton')?.click();
+});
  document.getElementById('desktopReset').addEventListener('click',()=>{positions={};try{localStorage.setItem(positionKey,JSON.stringify({_iaGamesSwappedV1:true}));document.getElementById('desktopResetStatus').textContent='Posiciones restablecidas en este navegador.'}catch{document.getElementById('desktopResetStatus').textContent='No se pudieron guardar las posiciones en este navegador.'}place()});
  window.addEventListener('dmf-settings-applied',build);window.addEventListener('resize',()=>{if(!drag)place()});new MutationObserver(updateBadge).observe(badge,{attributes:true,characterData:true,childList:true,subtree:true});
  document.body.classList.add('dmf-desktop');showHome();
