@@ -276,7 +276,6 @@ body.dmf-desktop.dmf-home .dmf-shortcuts{margin:0!important;top:0;width:100%;hei
 @media(max-width:207px){body.dmf-desktop.dmf-home .dmf-shortcuts{height:max(824px,calc(100dvh - var(--home-top) - var(--home-bottom)))!important}}
 </style><link rel="stylesheet" href="dmf-ai.css?v=c051ee2">
 <style>
-/* DMF SPORTS is a modal layer; only the parent Inicio control remains available. */
 body.dmf-sports-open{overflow:hidden!important;overscroll-behavior:none}
 body.dmf-sports-open #sportsPanel{display:block!important;position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:9000!important;background:#080d19!important;overflow:auto!important;overscroll-behavior:contain}
 body.dmf-sports-open #sportsFrame{display:block;width:100%;height:100%;min-height:100%;border:0}
@@ -662,7 +661,7 @@ document.getElementById('dmfSportsButton').addEventListener('click',()=>{
  if(document.getElementById('sportsPanel'))return;
  const p=document.createElement('div');p.id='sportsPanel';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');p.setAttribute('aria-label','Deportes DMF SPORTS');
  const f=document.createElement('iframe');f.id='sportsFrame';f.title='Deportes DMF';f.setAttribute('allow','fullscreen');f.setAttribute('allowfullscreen','');f.src='https://bruh-portal.github.io/sports/?v=a525a19-navmodal';p.append(f);
- document.body.append(p);document.body.classList.add('dmf-sports-open');document.getElementById('dmfHomeButton')?.focus();
+ window.dmfLeaveHome?.();document.body.append(p);document.body.classList.add('dmf-sports-open');document.getElementById('dmfHomeButton')?.focus();
 });
  document.getElementById('desktopReset').addEventListener('click',()=>{positions={};try{localStorage.setItem(positionKey,JSON.stringify({_iaGamesSwappedV1:true}));document.getElementById('desktopResetStatus').textContent='Posiciones restablecidas en este navegador.'}catch{document.getElementById('desktopResetStatus').textContent='No se pudieron guardar las posiciones en este navegador.'}place()});
  window.addEventListener('dmf-settings-applied',build);window.addEventListener('resize',()=>{if(!drag)place()});new MutationObserver(updateBadge).observe(badge,{attributes:true,characterData:true,childList:true,subtree:true});
