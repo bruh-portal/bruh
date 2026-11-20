@@ -365,6 +365,399 @@ document.getElementById('savePasted').addEventListener('click',()=>{const id=get
 document.getElementById('playForm').addEventListener('submit',e=>{e.preventDefault();const id=getId(u.value.trim());if(!id){msg.textContent='Pega un enlace válido de YouTube.';return}document.getElementById('radioUrban').pause();stopPlaylistQueue();if(ytPlayer&&ytPlayer.loadVideoById)ytPlayer.loadVideoById(id);else document.getElementById('video').src='https://www.youtube.com/embed/'+id+'?rel=0&playsinline=1';msg.textContent='Vídeo cargado. Algunos vídeos no permiten reproducirse fuera de YouTube.'});
 document.getElementById('searchForm').addEventListener('submit',async e=>{e.preventDefault();const q=document.getElementById('query').value.trim();if(!q)return;out.textContent='Buscando…';try{const r=await fetch('https://buscador-videos.diego-martinez-3b0.workers.dev/?q='+encodeURIComponent(q));const data=await r.json();if(!r.ok)throw new Error(data.error||'No se pudo buscar.');out.replaceChildren();if(!Array.isArray(data.results)||!data.results.length){out.textContent='No he encontrado resultados. Prueba con otras palabras.';return}data.results.forEach(item=>{if(!item||!/^[\w-]{11}$/.test(item.id)||typeof item.title!=='string')return;const div=document.createElement('article');div.className='result search-result-card';const pick=document.createElement('button');pick.type='button';pick.className='search-result-pick';pick.setAttribute('aria-label','Reproducir en DMF: '+item.title);const img=document.createElement('img');img.className='search-result-thumb';img.src='https://i.ytimg.com/vi/'+item.id+'/hqdefault.jpg';img.alt='';img.loading='lazy';img.onerror=()=>{img.onerror=null;img.src='https://i.ytimg.com/vi/'+item.id+'/mqdefault.jpg'};const title=document.createElement('strong');title.className='search-result-title';title.textContent=item.title;pick.append(img,title);pick.addEventListener('click',()=>{document.getElementById('radioUrban').pause();stopPlaylistQueue();const player=document.getElementById('video');player.src='https://www.youtube.com/embed/'+encodeURIComponent(item.id)+'?rel=0&playsinline=1';document.getElementById('message').textContent='Reproduciendo en DMF.';player.scrollIntoView({behavior:'smooth',block:'center'})});const fav=document.createElement('button');fav.type='button';fav.className='favorite-toggle';fav.dataset.favoriteId=item.id;updateFavButton(fav);fav.addEventListener('click',()=>toggleFavorite({id:item.id,title:item.title,url:'https://www.youtube.com/watch?v='+item.id}));div.append(pick,fav);out.append(div)});if(!out.childElementCount)out.textContent='No se han podido mostrar los resultados. Prueba otra búsqueda.'}catch(error){out.textContent='No se pudo buscar ahora. Inténtalo de nuevo más tarde.'}});
 
+(()=>{
+  const mainMusicTab=document.getElementById('tab-radio');
+  const radioPanel=document.getElementById('panel-radio');
+  const radioCard=radioPanel?.querySelector('#radio');
+
+  if(!mainMusicTab||!radioPanel||!radioCard||document.getElementById('musicInnerTabs'))return;
+
+  // Cambia los nombres de las pestañas principales
+  mainMusicTab.textContent='🎵 Música';
+
+  const playlistTab=document.getElementById('tab-playlists');
+  if(playlistTab) playlistTab.textContent='🎧 Playlist';
+
+  // Pestañas que van dentro de Música
+  const innerNav=document.createElement('div');
+  innerNav.id='musicInnerTabs';
+  innerNav.className='music-inner-tabs';
+  innerNav.setAttribute('role','tablist');
+  innerNav.setAttribute('aria-label','Buscar música o escuchar la radio');
+
+  const musicTab=document.createElement('button');
+  musicTab.type='button';
+  musicTab.className='music-inner-tab active';
+  musicTab.id='music-inner-tab';
+  musicTab.setAttribute('role','tab');
+  musicTab.setAttribute('aria-selected','true');
+  musicTab.setAttribute('aria-controls','music-inner-panel');
+  musicTab.textContent='🔎 Buscar música';
+
+  const radioTab=document.createElement('button');
+  radioTab.type='button';
+  radioTab.className='music-inner-tab';
+  radioTab.id='radio-inner-tab';
+  radioTab.setAttribute('role','tab');
+  radioTab.setAttribute('aria-selected','false');
+  radioTab.setAttribute('aria-controls','radio-inner-panel');
+  radioTab.textContent='📻 Radio';
+
+  innerNav.append(musicTab,radioTab);
+
+  const musicPane=document.createElement('section');
+  musicPane.id='music-inner-panel';
+  musicPane.className='music-inner-panel';
+  musicPane.setAttribute('role','tabpanel');
+  musicPane.setAttribute('aria-labelledby','music-inner-tab');
+
+  const radioPane=document.createElement('section');
+  radioPane.id='radio-inner-panel';
+  radioPane.className='music-inner-panel';
+  radioPane.setAttribute('role','tabpanel');
+  radioPane.setAttribute('aria-labelledby','radio-inner-tab');
+  radioPane.hidden=true;
+
+  // Buscador de canciones
+  musicPane.innerHTML=`
+    <section class="search dmf-music-section" aria-label="Buscar música">
+      <div class="dmf-music-heading">
+        <p class="eyebrow">MÚSICA · DMF</p>
+        <h2>🎵 Canciones y álbumes</h2>
+        <p>Busca una canción, artista o álbum y elige un resultado para reproducirlo.</p>
+      </div>
+
+      <form id="musicSearchForm" class="controls">
+        <input id="musicQuery" placeholder="Artista, canción o álbum…" maxlength="180" required>
+        <button type="submit">Buscar música</button>
+      </form>
+
+      <p id="musicSearchStatus" class="message" role="status" aria-live="polite">
+        Escribe qué quieres escuchar.
+      </p>
+
+      <div id="musicResults" class="dmf-music-results" aria-live="polite"></div>
+
+      <div class="dmf-music-now">
+        <div id="musicBars" class="dmf-music-bars" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div>
+          <p class="eyebrow">SONANDO EN DMF</p>
+          <h3 id="musicNowTitle">Elige una canción</h3>
+          <p id="musicNowArtist">El reproductor aparecerá aquí.</p>
+        </div>
+      </div>
+
+      <div class="player dmf-music-player">
+        <iframe
+          id="musicVideoPlayer"
+          title="Reproductor de música de YouTube"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen>
+        </iframe>
+      </div>
+
+      <p class="tv-frame-note">Si no empieza automáticamente, pulsa ▶.</p>
+    </section>`;
+
+  // Mueve la radio que ya existe a su propia pestaña
+  radioPane.appendChild(radioCard);
+  radioPanel.prepend(radioPane);
+  radioPanel.prepend(musicPane);
+  radioPanel.prepend(innerNav);
+
+  // Estilos
+  const style=document.createElement('style');
+  style.textContent=`
+    .music-inner-tabs{
+      display:flex;
+      gap:10px;
+      margin:12px 0 18px;
+    }
+    .music-inner-tab{
+      border:1px solid #28545e;
+      border-radius:10px;
+      padding:10px 17px;
+      background:#14272c;
+      color:#d9faff;
+      font-weight:bold;
+      cursor:pointer;
+    }
+    .music-inner-tab.active{
+      background:#087e80;
+      color:white;
+    }
+    .music-inner-panel[hidden]{
+      display:none;
+    }
+    .dmf-music-section{
+      max-width:1040px;
+      margin:0 auto;
+    }
+    .dmf-music-heading h2{
+      margin:4px 0 8px;
+    }
+    .dmf-music-heading p{
+      color:#b7d9da;
+    }
+    .dmf-music-results{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+      gap:10px;
+      margin-top:16px;
+    }
+    .dmf-music-result{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 46px;
+      align-items:center;
+      gap:12px;
+      padding:10px;
+      background:linear-gradient(120deg,#10282d,#172a36);
+      border:1px solid #28545e;
+      border-radius:14px;
+    }
+    .dmf-music-pick{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+      text-align:left;
+      background:transparent!important;
+      border:0!important;
+      padding:0!important;
+      color:#f3ffff!important;
+      box-shadow:none!important;
+    }
+    .dmf-music-thumb{
+      width:82px;
+      height:82px;
+      object-fit:cover;
+      border-radius:10px;
+      background:#203a3f;
+    }
+    .dmf-music-meta{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      min-width:0;
+    }
+    .dmf-music-title{
+      font-weight:750;
+      line-height:1.25;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+    .dmf-music-artist{
+      color:#a9c4c8;
+      font-size:13px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .dmf-music-play{
+      color:#71eee0;
+      font-size:13px;
+    }
+    .dmf-music-now{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding:14px;
+      margin:18px 0 10px;
+      border:1px solid #28545e;
+      border-radius:14px;
+      background:#102125;
+    }
+    .dmf-music-now h3{
+      margin:4px 0;
+    }
+    .dmf-music-now p{
+      margin:3px 0;
+      color:#b7d9da;
+    }
+    .dmf-music-bars{
+      height:48px;
+      display:flex;
+      align-items:center;
+      gap:3px;
+      flex:none;
+    }
+    .dmf-music-bars i{
+      display:block;
+      width:4px;
+      height:8px;
+      border-radius:4px;
+      background:linear-gradient(#61f1de,#1686b2);
+      animation:dmfMusicBeat .72s ease-in-out infinite alternate;
+      animation-play-state:paused;
+    }
+    .dmf-music-bars.playing i{
+      animation-play-state:running;
+    }
+    @keyframes dmfMusicBeat{
+      from{height:7px;opacity:.65}
+      to{height:42px;opacity:1}
+    }
+    .dmf-music-player{
+      max-width:820px;
+      margin:0 auto;
+    }
+    .dmf-music-player iframe{
+      width:100%;
+      aspect-ratio:16/9;
+      border:0;
+      border-radius:12px;
+      background:#071013;
+    }
+    @media(max-width:520px){
+      .dmf-music-results{grid-template-columns:1fr}
+      .dmf-music-now{gap:10px;padding:10px}
+    }
+  `;
+  document.head.appendChild(style);
+
+  function showInner(which){
+    const showMusic=which==='music';
+
+    musicPane.hidden=!showMusic;
+    radioPane.hidden=showMusic;
+
+    musicTab.classList.toggle('active',showMusic);
+    radioTab.classList.toggle('active',!showMusic);
+
+    musicTab.setAttribute('aria-selected',String(showMusic));
+    radioTab.setAttribute('aria-selected',String(!showMusic));
+  }
+
+  musicTab.addEventListener('click',()=>showInner('music'));
+  radioTab.addEventListener('click',()=>showInner('radio'));
+
+  // Búsqueda y reproducción
+  musicPane.querySelector('#musicSearchForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+
+    const q=musicPane.querySelector('#musicQuery').value.trim();
+    if(!q)return;
+
+    const list=musicPane.querySelector('#musicResults');
+    const status=musicPane.querySelector('#musicSearchStatus');
+
+    status.textContent='Buscando…';
+    list.replaceChildren();
+
+    try{
+      const r=await fetch(
+        'https://buscador-videos.diego-martinez-3b0.workers.dev/?q='+encodeURIComponent(q)
+      );
+      const data=await r.json();
+
+      if(!r.ok)throw new Error('search failed');
+
+      const items=Array.isArray(data.results)
+        ?data.results.filter(x=>x&&/^[\w-]{11}$/.test(x.id)&&typeof x.title==='string')
+        :[];
+
+      if(!items.length){
+        status.textContent='No se encontraron resultados. Prueba otra búsqueda.';
+        return;
+      }
+
+      status.textContent='Resultados de YouTube · toca uno para reproducirlo abajo.';
+
+      items.forEach(item=>{
+        const card=document.createElement('article');
+        card.className='dmf-music-result';
+
+        const pick=document.createElement('button');
+        pick.type='button';
+        pick.className='dmf-music-pick';
+        pick.setAttribute('aria-label','Reproducir '+item.title);
+
+        const img=document.createElement('img');
+        img.className='dmf-music-thumb';
+        img.src='https://i.ytimg.com/vi/'+encodeURIComponent(item.id)+'/hqdefault.jpg';
+        img.alt='';
+        img.loading='lazy';
+        img.onerror=()=>{
+          img.onerror=null;
+          img.src='https://i.ytimg.com/vi/'+encodeURIComponent(item.id)+'/mqdefault.jpg';
+        };
+
+        const meta=document.createElement('span');
+        meta.className='dmf-music-meta';
+
+        const parsed=item.title.match(/^(.+?)\s[-–—]\s(.+)$/);
+
+        const title=document.createElement('span');
+        title.className='dmf-music-title';
+        title.textContent=parsed?parsed[2]:item.title;
+
+        const artist=document.createElement('span');
+        artist.className='dmf-music-artist';
+        artist.textContent=parsed?parsed[1]+' · YouTube':'Resultado de YouTube';
+
+        const play=document.createElement('span');
+        play.className='dmf-music-play';
+        play.textContent='▶ Reproducir';
+
+        meta.append(title,artist,play);
+        pick.append(img,meta);
+
+        pick.addEventListener('click',()=>{
+          document.getElementById('radioUrban')?.pause();
+
+          if(typeof stopPlaylistQueue==='function'){
+            stopPlaylistQueue();
+          }
+
+          const videoFrame=document.getElementById('video');
+
+          if(typeof ytPlayer!=='undefined'&&ytPlayer?.pauseVideo){
+            ytPlayer.pauseVideo();
+          }else if(videoFrame&&videoFrame.src){
+            videoFrame.src='about:blank';
+          }
+
+          const frame=musicPane.querySelector('#musicVideoPlayer');
+          frame.src='https://www.youtube.com/embed/'+encodeURIComponent(item.id)+'?rel=0&playsinline=1&autoplay=1';
+
+          musicPane.querySelector('#musicNowTitle').textContent=item.title;
+          musicPane.querySelector('#musicNowArtist').textContent='YouTube · Música';
+          musicPane.querySelector('#musicBars').classList.add('playing');
+
+          frame.scrollIntoView({behavior:'smooth',block:'center'});
+        });
+
+        const fav=document.createElement('button');
+        fav.type='button';
+        fav.className='favorite-toggle';
+        fav.textContent='☆';
+        fav.title='Guardar en playlist';
+        fav.setAttribute('aria-label','Guardar '+item.title+' en playlist');
+
+        fav.addEventListener('click',()=>{
+          if(typeof toggleFavorite==='function'){
+            toggleFavorite({
+              id:item.id,
+              title:item.title,
+              url:'https://www.youtube.com/watch?v='+item.id
+            });
+          }
+        });
+
+        card.append(pick,fav);
+        list.append(card);
+      });
+    }catch(err){
+      status.textContent='No se pudo buscar ahora. Inténtalo de nuevo más tarde.';
+    }
+  });
+})();
 const radioStations=[{id:'urban',name:'LOS40 Urban',brand:'LOS40',tag:'URBAN',subtitle:'El ritmo de la calle',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_URBAN_SC.mp3'},{id:'los40',name:'LOS40',brand:'LOS40',tag:'HITS',subtitle:'Los éxitos del momento',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_SC.mp3'},{id:'classic',name:'LOS40 Classic',brand:'LOS40',tag:'CLASSIC',subtitle:'Los temas que nunca pasan',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_CLASSIC_SC.mp3'},{id:'dance',name:'LOS40 Dance',brand:'LOS40',tag:'DANCE',subtitle:'Música dance sin parar',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_DANCE_SC.mp3'},{id:'dial',name:'Cadena Dial',brand:'CADENA',tag:'DIAL',subtitle:'La mejor música en español',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL.mp3'},{id:'ser',name:'Cadena SER',brand:'CADENA',tag:'SER',subtitle:'Información y actualidad',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENASER.mp3'},{id:'cadena100',name:'Cadena 100',brand:'CADENA',tag:'100',subtitle:'La mejor variedad musical',url:'https://cadena100-cope.flumotion.com/chunks.m3u8'},{id:'rockfm',name:'Rock FM',brand:'ROCK',tag:'FM',subtitle:'El mejor rock',url:'https://rockfm-cope-rrcast.flumotion.com/cope/rockfm-low.mp3'},{id:'ondacero',name:'Onda Cero',brand:'ONDA',tag:'CERO',subtitle:'La radio que te escucha',url:'https://atres-live.ondacero.es/live/ondacero/bitrate_1.m3u8'}];
 const stationPickerToggle=document.getElementById('stationPickerToggle'),stationChoices=document.getElementById('stationChoices'),stationResults=document.getElementById('stationResults'),stationSearch=document.getElementById('stationSearch');let selectedStation=radioStations.find(x=>x.id==='urban'),stationSearchTimer=null,stationRequest=0;
 function setStationVisual(station){selectedStation=station;document.getElementById('stationBrand').textContent=station.brand||station.name;document.getElementById('stationTag').textContent=station.tag||'RADIO';document.getElementById('stationTitle').textContent=station.name;document.getElementById('stationSubtitle').textContent=station.subtitle||station.tags||'Emisora en directo';document.getElementById('stationTopName').textContent=station.name.toLocaleUpperCase('es');document.getElementById('radioDiscToggle').setAttribute('aria-label','Reproducir o pausar '+station.name);document.getElementById('radioDiscToggle').title='Toca el disco para reproducir o pausar '+station.name;stationResults.querySelectorAll('.station-option').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.url===station.url)));try{localStorage.setItem('dmfRadioStation',JSON.stringify(station))}catch{}}
