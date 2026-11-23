@@ -1694,7 +1694,7 @@ function load(){const stamp=day(),today=new Date(),start=new Date(today.getFullY
  let peer=null,conn=null,role=null,chess=null,selected=null,legal=[],peerReady=false,roomCode='',botMode=false,botTimer=null,gameCounted=false;
  const codeAlphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
  function makeCode(){const bytes=new Uint8Array(6);crypto.getRandomValues(bytes);return Array.from(bytes,b=>codeAlphabet[b%codeAlphabet.length]).join('');}
- const symbols={wp:'♟',wn:'♞',wb:'♝',wr:'♜',wq:'♛',wk:'♚',bp:'♟',bn:'♞',bb:'♝',br:'♜',bq:'♛',bk:'♚'};
+const symbols={wp:'♙',wn:'♘',wb:'♗',wr:'♖',wq:'♕',wk:'♔',bp:'♟',bn:'♞',bb:'♝',br:'♜',bq:'♛',bk:'♚'};
  function setStatus(t){status.textContent=t;}
  const streakText=view.querySelector('#dmfChessStreakText'),streakHelp=view.querySelector('#dmfChessStreakHelp'),streakKey='dmfChessStreakV1';
  let streak={days:0,lastDate:'',playedDays:0,shields:0};
@@ -1741,7 +1741,7 @@ function load(){const stamp=day(),today=new Date(),start=new Date(today.getFullY
    if(selected===sq)b.classList.add('selected');const move=legal.find(m=>m.to===sq);if(move)b.classList.add(move.captured?'capture':'legal');if(p)b.classList.add(p.color==='w'?'piece-white':'piece-black');b.textContent=p?symbols[p.color+p.type]:'';
    b.addEventListener('click',()=>squareClick(sq));boardEl.append(b);
   }
-  if(gameOver()){if(!drawn())recordFinishedGame();else recordFinishedGame();let end=checkmate()?(botMode?(chess.turn()==='b'?'Jaque mate. ¡Has ganado!':'Jaque mate. Ha ganado el bot.'):'Jaque mate. Ganan las '+(chess.turn()==='w'?'negras':'blancas')+'.'):drawn()?'Tablas.':'Partida terminada.';setStatus(end);}
+ if(gameOver()){recordFinishedGame();let end=checkmate()?(botMode?(chess.turn()==='b'?'¡Jaque mate al bot! ¡Has ganado!':'¡Jaque mate! Has perdido; ha ganado el bot.'):'¡Jaque mate! Ganan las '+(chess.turn()==='w'?'negras':'blancas')+'.'):drawn()?'Tablas.':'Partida terminada.';setStatus(end);}
   else setStatus((botMode?(chess.turn()==='w'?'Tú (blancas) · tu turno':'Bot (negras) · pensando / su turno'):(role==='w'?'Blancas':'Negras')+' · '+(chess.turn()==='w'?'Mueven las blancas':'Mueven las negras'))+(checked()?' · ¡Jaque!':''));
  }
  function squareClick(sq){if(!chess||(!botMode&&!conn?.open)||gameOver()||chess.turn()!==role)return;const p=chess.get(sq);if(selected&&legal.some(m=>m.to===sq)){makeMove(selected,sq);return;}if(p&&p.color===role){selected=sq;legal=chess.moves({square:sq,verbose:true});render();}else{selected=null;legal=[];render();}}
