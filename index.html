@@ -1651,4 +1651,74 @@ function load(){const stamp=day(),today=new Date(),start=new Date(today.getFullY
  });update();
 })();
 </script>
+
+<!-- DMF Ajedrez: sala privada para dos jugadores -->
+<script>
+(()=>{
+ const games=document.getElementById('panel-games');
+ const anchor=document.getElementById('gameSky');
+ const card=games?.querySelector('.games-card');
+ if(!games||!anchor||!card||document.getElementById('gameChessOnline')){console.warn('DMF Ajedrez: no se encontró la zona de Juegos o ya está añadido.');return;}
+ const style=document.createElement('style');
+ style.textContent=`
+ .dmf-chess-view{padding:18px!important;background:linear-gradient(145deg,#10242c,#132d39)!important;border:1px solid #43cfc8!important;border-radius:16px!important}
+ .dmf-chess-view h3{margin-top:0}.dmf-chess-tools{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:12px 0}
+ .dmf-chess-tools input{flex:1 1 190px;min-width:0;padding:12px;border:1px solid #397078;border-radius:9px;background:#0d1b20;color:white}
+ .dmf-chess-code{font-weight:800;letter-spacing:1px;overflow-wrap:anywhere;color:#85f5e7}
+ .dmf-chess-status{min-height:1.5em;color:#cce8ea}.dmf-chess-board{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,600px);aspect-ratio:1;margin:16px auto;border:5px solid #29434b;border-radius:8px;overflow:hidden}
+ .dmf-chess-square{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;padding:0!important;border:0!important;border-radius:0!important;font-family:'Noto Sans Symbols 2','DejaVu Sans',serif;font-size:clamp(22px,7.5vw,58px)!important;line-height:1;color:#101820!important;text-shadow:0 1px 1px #fff8;box-shadow:none!important}
+ .dmf-chess-square.light{background:#e9e1cf!important}.dmf-chess-square.dark{background:#52806c!important}.dmf-chess-square.selected{box-shadow:inset 0 0 0 4px #ffd44d!important}.dmf-chess-square.legal:after{content:'';position:absolute;width:23%;height:23%;border-radius:50%;background:#1a263c75}.dmf-chess-square.capture:after{width:80%;height:80%;background:transparent;border:4px solid #d4554a99}
+ .dmf-chess-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.dmf-chess-actions button{min-width:130px}.dmf-chess-view .game-group-back{margin-bottom:12px}
+ @media(max-width:520px){.dmf-chess-view{padding:12px!important}.dmf-chess-board{border-width:3px}.dmf-chess-square{font-size:clamp(20px,10vw,46px)!important}.dmf-chess-tools button{flex:1}}
+ `;document.head.append(style);
+ const chessBtn=document.createElement('button');chessBtn.type='button';chessBtn.id='gameChessOnline';chessBtn.textContent='♟️ Ajedrez';
+ anchor.parentElement.insertBefore(chessBtn,anchor);
+ const view=document.createElement('section');view.className='game-view dmf-chess-view';view.id='dmfChessView';view.hidden=true;
+ view.innerHTML=`<button class="game-group-back" id="dmfChessBack" type="button">← Volver a Juegos</button>
+ <h3>♟️ DMF Ajedrez</h3><p>Crea una sala y comparte el código con tu amigo, o introduce el código de la sala que te pase.</p>
+ <div class="dmf-chess-actions"><button id="dmfChessCreate" type="button">＋ Crear sala</button><button id="dmfChessJoinToggle" type="button">🔑 Tengo un código</button></div>
+ <div id="dmfChessJoinBox" class="dmf-chess-tools" hidden><input id="dmfChessCodeInput" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="Código de 6 caracteres"><button id="dmfChessJoin" type="button">Unirme</button></div>
+ <div id="dmfChessRoom" hidden><p id="dmfChessStatus" class="dmf-chess-status" role="status" aria-live="polite">Conectando…</p><div id="dmfChessInvite" hidden><p>Comparte este código con tu amigo:</p><p id="dmfChessCode" class="dmf-chess-code"></p><button id="dmfChessCopy" type="button">📋 Copiar código</button></div>
+ <div id="dmfChessBoard" class="dmf-chess-board" role="grid" aria-label="Tablero de ajedrez"></div><div class="dmf-chess-actions"><button id="dmfChessLeave" type="button">Salir de la sala</button></div></div>
+ <p class="game-hint">La sala es privada para las dos personas que tienen el código. Se necesita conexión a Internet en ambos dispositivos.</p>`;
+ card.append(view);
+ let savedChildren=[];function showChess(){savedChildren=Array.from(card.children).filter(x=>x!==view).map(x=>[x,x.hidden]);savedChildren.forEach(([x])=>x.hidden=true);view.hidden=false;}
+ function hideChess(){stopRoom();view.hidden=true;savedChildren.forEach(([x,h])=>x.hidden=h);savedChildren=[];}
+ chessBtn.addEventListener('click',showChess);view.querySelector('#dmfChessBack').addEventListener('click',hideChess);
+ const status=view.querySelector('#dmfChessStatus'),roomBox=view.querySelector('#dmfChessRoom'),invite=view.querySelector('#dmfChessInvite'),codeText=view.querySelector('#dmfChessCode'),boardEl=view.querySelector('#dmfChessBoard');
+ let peer=null,conn=null,role=null,chess=null,selected=null,legal=[],peerReady=false,roomCode='';
+ const codeAlphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+ function makeCode(){const bytes=new Uint8Array(6);crypto.getRandomValues(bytes);return Array.from(bytes,b=>codeAlphabet[b%codeAlphabet.length]).join('');}
+ const symbols={wp:'♙',wn:'♘',wb:'♗',wr:'♖',wq:'♕',wk:'♔',bp:'♟',bn:'♞',bb:'♝',br:'♜',bq:'♛',bk:'♚'};
+ function setStatus(t){status.textContent=t;}
+ function loadLibs(){
+  if(window.Peer&&window.Chess)return Promise.resolve();
+  if(window.dmfChessLibPromise)return window.dmfChessLibPromise;
+  window.dmfChessLibPromise=new Promise((resolve,reject)=>{
+   const add=(src,ok)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>reject(new Error('No se pudo cargar una librería del ajedrez.'));document.head.append(s);};
+   const afterChess=()=>{if(!window.Chess){reject(new Error('La librería de reglas no se inició.'));return;}add('https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js',()=>window.Peer?resolve():reject(new Error('PeerJS no se inició.')));};
+   if(window.Chess)afterChess();else add('https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js',afterChess);
+  });return window.dmfChessLibPromise;
+ }
+ function stopRoom(){try{conn?.close()}catch{}try{peer?.destroy()}catch{}peer=null;conn=null;role=null;chess=null;selected=null;legal=[];peerReady=false;roomCode='';roomBox.hidden=true;invite.hidden=true;boardEl.replaceChildren();}
+ function render(){
+  if(!chess)return;boardEl.replaceChildren();const rows=role==='b'?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1],files=role==='b'?['h','g','f','e','d','c','b','a']:['a','b','c','d','e','f','g','h'];
+  for(const rank of rows)for(const file of files){const sq=file+rank,p=chess.get(sq),b=document.createElement('button');b.type='button';b.className='dmf-chess-square '+((rank+files.indexOf(file))%2?'light':'dark');b.setAttribute('role','gridcell');b.setAttribute('aria-label',sq+(p?' '+p.color+' '+p.type:' vacío'));
+   if(selected===sq)b.classList.add('selected');const move=legal.find(m=>m.to===sq);if(move)b.classList.add(move.captured?'capture':'legal');b.textContent=p?symbols[p.color+p.type]:'';
+   b.addEventListener('click',()=>squareClick(sq));boardEl.append(b);
+  }
+  if(chess.isGameOver()){let end=chess.isCheckmate()?'Jaque mate. Ganan las '+(chess.turn()==='w'?'negras':'blancas')+'.':chess.isDraw()?'Tablas.':'Partida terminada.';setStatus(end);}
+  else setStatus((role==='w'?'Blancas':'Negras')+' · '+(chess.turn()==='w'?'Mueven las blancas':'Mueven las negras')+(chess.isCheck()?' · ¡Jaque!':''));
+ }
+ function squareClick(sq){if(!chess||!conn?.open||chess.isGameOver()||chess.turn()!==role)return;const p=chess.get(sq);if(selected&&legal.some(m=>m.to===sq)){makeMove(selected,sq);return;}if(p&&p.color===role){selected=sq;legal=chess.moves({square:sq,verbose:true});render();}else{selected=null;legal=[];render();}}
+ function makeMove(from,to){try{const m=chess.move({from,to,promotion:'q'});if(!m)return;selected=null;legal=[];render();conn.send({type:'move',from,to,promotion:'q'});}catch{setStatus('No se pudo realizar esa jugada.');}}
+ function onData(msg){if(!msg||typeof msg!=='object')return;if(msg.type==='sync'&&role==='b'&&typeof msg.fen==='string'){if(chess.load(msg.fen)){render();setStatus('Conectados · tú juegas con negras.');}return;}if(msg.type==='move'&&chess&&conn?.open){if(chess.turn()===role)return;try{const m=chess.move({from:msg.from,to:msg.to,promotion:msg.promotion||'q'});if(!m){setStatus('Jugada no válida recibida; la sala se ha detenido.');return;}selected=null;legal=[];render();}catch{setStatus('No se pudo sincronizar la jugada.');}}}
+ function wire(c,isHost){conn=c;c.on('open',()=>{peerReady=true;roomBox.hidden=false;view.querySelector('#dmfChessJoinBox').hidden=true;if(isHost){role='w';chess=new Chess();invite.hidden=false;codeText.textContent=peer.id;c.send({type:'sync',fen:chess.fen()});setStatus('Conectados · tú juegas con blancas.');}else{role='b';chess=new Chess();invite.hidden=true;setStatus('Conectados · tú juegas con negras.');}render();});c.on('data',onData);c.on('close',()=>setStatus('Tu amigo se desconectó. El código ya no tiene una sala activa.'));c.on('error',()=>setStatus('Se perdió la conexión de la partida.'));}
+ view.querySelector('#dmfChessCreate').addEventListener('click',async()=>{stopRoom();roomBox.hidden=false;invite.hidden=true;setStatus('Preparando sala…');try{await loadLibs();let attempts=0;const createHost=()=>{attempts++;roomCode=makeCode();const host=new Peer('dmfchess-'+roomCode.toLowerCase());peer=host;host.on('open',()=>{if(peer!==host)return;chess=new Chess();role='w';roomBox.hidden=false;invite.hidden=false;codeText.textContent=roomCode;boardEl.replaceChildren();setStatus('Sala creada. Comparte el código de 6 caracteres y espera a tu amigo.');render();});host.on('connection',c=>{if(peer!==host)return;if(conn){c.close();return;}wire(c,true);setStatus('Tu amigo se está conectando…');});host.on('error',e=>{if(peer!==host)return;if(e.type==='unavailable-id'&&attempts<6){try{host.destroy()}catch{};createHost();return;}setStatus(e.type==='unavailable-id'?'No se pudo reservar un código. Pulsa Crear sala para probar otro.':'No se pudo crear/conectar la sala ('+(e.type||'error')+'). Prueba otra vez; puede que la red bloquee la conexión.');});};createHost();}catch(e){setStatus(e.message||'No se pudo cargar el ajedrez. Comprueba Internet.');}});
+ view.querySelector('#dmfChessJoinToggle').addEventListener('click',()=>{view.querySelector('#dmfChessJoinBox').hidden=false;view.querySelector('#dmfChessCodeInput').focus();});
+ view.querySelector('#dmfChessJoin').addEventListener('click',async()=>{const code=view.querySelector('#dmfChessCodeInput').value.trim().toUpperCase();if(!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/.test(code)){setStatus('El código debe tener 6 letras o números.');return;}stopRoom();roomBox.hidden=false;setStatus('Conectando a la sala…');try{await loadLibs();peer=new Peer();peer.on('open',()=>{conn=peer.connect('dmfchess-'+code.toLowerCase(),{reliable:true});wire(conn,false);});peer.on('error',e=>setStatus('No se pudo unir ('+(e.type||'error')+'). Comprueba el código y que tu amigo siga esperando.'));}catch(e){setStatus(e.message||'No se pudo cargar el ajedrez. Comprueba Internet.');}});
+ view.querySelector('#dmfChessCopy').addEventListener('click',async()=>{const code=codeText.textContent;try{await navigator.clipboard.writeText(code);setStatus('Código copiado. Envíalo a tu amigo.');}catch{setStatus('Selecciona y copia el código mostrado.');}});
+ view.querySelector('#dmfChessLeave').addEventListener('click',()=>{stopRoom();setStatus('Has salido de la sala.');});
+})();
+</script>
 </body></html>
